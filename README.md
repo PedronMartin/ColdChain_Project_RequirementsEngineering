@@ -1,5 +1,5 @@
-# ColdChain_Project_RequirementsEngineering
-A formal Requirements Analysis for a fragile goods tracking platform. Showcases goal-oriented modeling and a structured IEEE-830 requirement document.
+# ColdChain_Project_RequirementsEngineering --- ITA Version
+Un'analisi formale dei requisiti per una piattaforma di tracciamento di merci fragili. con modellazione orientata agli obiettivi e un documento dei requisiti strutturato secondo lo standard IEEE-830.
 
 ## Contesto accademico e assegnazione del progetto
 Questo repository ospita il progetto formale realizzato per il corso magistrale di ingegneria dei requisiti presso l'Università degli Studi di Verona. Il lavoro nasce dalla specifica richiesta di analizzare e modellare un sistema software avanzato per la gestione logistica, il monitoraggio del trasporto e l'immagazzinamento di merci fragili o sensibili, come prodotti farmaceutici, alimenti surgelati, fiori e opere d'arte. L'obiettivo primario consiste nel certificare la qualità e l'integrità dell'intera catena di approvvigionamento tramite dispositivi fisici IoT a basso costo e alimentati a batteria, inseriti direttamente all'interno dei colli. Questi sensori devono raccogliere costantemente misurazioni ambientali, tra cui temperatura, umidità e vibrazioni, trasmettendole in modo sicuro, certificato da firma digitale e a prova di manomissione, per garantire che nessun attore della filiera possa alterare i dati storici del prodotto.
@@ -39,3 +39,47 @@ Il documento dei requisiti è organizzato per garantire completezza, chiarezza e
 * introduzione: scopo del documento, glossario dei concetti logistici e riferimenti alle fonti.
 * descrizione generale: prospettiva del sistema SaaS e IoT, caratteristiche degli stakeholder e assunzioni ambientali.
 * requisiti specifici: categorizzazione puntuale di requisiti funzionali, interfacce esterne web API, prestazioni, sicurezza e interoperabilità, vincolati a protocolli di misurazione quantitativi per i colli di verifica.
+
+
+
+# ColdChain_Project_RequirementsEngineering ---EN. Version
+A formal Requirements Analysis for a fragile goods tracking platform. Showcases goal-oriented modeling and a structured IEEE-830 requirement document.
+
+## Academic context and project assignment
+This repository hosts the formal project developed for the master's degree course in requirements engineering at the University of Verona. The work arises from the specific request to analyze and model an advanced software system for logistics management, transport monitoring, and storage of fragile or sensitive goods, such as pharmaceuticals, frozen foods, flowers, and artworks. The primary objective is to certify the quality and integrity of the entire supply chain using low-cost, battery-powered physical IoT devices inserted directly into the packages. These sensors must continuously collect environmental measurements, including temperature, humidity, and vibrations, transmitting them in a secure, digitally signed, and tamper-proof manner to ensure that no actor in the supply chain can alter the historical product data.
+
+## System overview and proposed architecture
+The architectural infrastructure combines physical IoT devices operating in the field with a SaaS cloud platform, utilizing mobile applications on smartphones as a communication bridge. The system provides display dashboards for real-time monitoring and web API interfaces for data interoperability, offering total transparency over logistics processes. This structure allows, for example, an end consumer to verify the authenticity and travel conditions of the product by scanning a simple QR code. Visitors are advised that this repository focuses exclusively on requirements engineering, as it contains no implementation source code, but encompasses a rigorous logical exploration, risk assessment, and the drafting of formal system specifications.
+
+## Analysis methodology and tools
+The entire analysis was conducted following the goal-oriented requirements engineering paradigm, utilizing the Objectiver modeling tool for deriving and verifying graphical diagrams. The formal specification documentation was drafted strictly adhering to the guidelines and organizational structure dictated by the international IEEE 830-1998 standard. Analyzing each requirement involves applying objective measurement criteria to ensure that every quality constraint is fully verifiable during subsequent testing phases.
+
+## Repository contents and included artifacts
+The project explores the logistics problem by addressing the intentional, structural, functional, and behavioral dimensions through three main analytical documents. Inside the archive, visitors can find first of all the descriptive project report, which provides an overview of the work done and architectural choices. Alongside the report is the formal requirements document according to the IEEE 830-1998 standard, completed by objective measurement criteria for quality and performance constraints. The third pillar consists of the goal-oriented diagrams created and commented using Objectiver, which are structured into five complementary views. The intentional view presents the general tree of goals, integrating risk analysis through obstacle diagrams and relative security countermeasures. The structural view captures domain concepts through the class diagram, while the responsibility view maps strategic delegations and dependencies between software and environmental agents. Finally, the functional view defines signatures and operationalization rules for individual services, leaving to the behavioral view the task of illustrating temporal dynamics via state machines and sequence diagrams for normal and alarm scenarios.
+
+---
+
+### Objectiver modeling views in detail
+
+#### 1. Intentional view and risk management
+Analyzing the system starts from fundamental motivations, placing secure and certified transport of goods at the root. Refining macro-goals via AND and OR constructs allows identifying requirements that can be delegated to individual agents. Examining obstacles that threaten goals simultaneously reveals risks such as sensor failures, battery depletion, or logical data tampering. Introducing precise countermeasures for each threat involves cryptographic signatures, preventive maintenance notifications, and low-power communication protocols such as bluetooth low energy.
+
+#### 2. Structural and conceptual view
+Capturing logistics domain entities via a conceptual class diagram avoids premature software design choices. Structuring the model defines entities such as shipment, package, and physical sensor, linking them with associations that specify which devices track individual loads at any given moment. Defining dynamic state attributes rigorously includes allowed temperature thresholds, maximum vibrations, and sampling frequency, accompanying each element with explicit definitions and domain invariants.
+
+#### 3. Responsibility and agent view
+Allocating low-level goals formally to system actors distinguishes software agents, such as cloud controllers and dashboard interfaces, from environmental agents, including logistics operators, couriers, and certification authorities. Defining interfaces clarifies monitored and controlled state variables for each actor, applying the structural rule that a variable can be modified by only one agent at a time to prevent operational conflicts.
+
+#### 4. Functional view and operationalization
+Defining system state transitions links operations to their respective leaf goals. Specifying exact signatures for key services, such as tracking activation or triggering a thermal violation alarm, indicates input read variables and output produced variables. Making domain pre-conditions and post-conditions explicit integrates prescriptive permission rules to authorize execution and trigger conditions to make operation activation mandatory and instantaneous.
+
+#### 5. Behavioral view and scenarios
+Representing temporal dynamics involves sequence diagrams and state machines. Scenarios cover both normal interactions of viewing data on the public dashboard and exception flows where out-of-range values trigger security alarms. State machines describe the lifecycle of devices and shipments, tracking transitions strictly governed by logical guards and executive operations.
+
+---
+
+### IEEE 830-1998 requirements document structure
+The requirements document is organized to ensure completeness, clarity, and total absence of ambiguity:
+* introduction: document purpose, glossary of logistics concepts, and references to sources.
+* general description: SaaS and IoT system perspective, stakeholder characteristics, and environmental assumptions.
+* specific requirements: detailed categorization of functional requirements, external web API interfaces, performance, security, and interoperability, bound to quantitative measurement protocols for testing benchmarks.
