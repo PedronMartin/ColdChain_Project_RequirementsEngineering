@@ -3,7 +3,7 @@
 
 
 ## Table of Contents
-<!-- TOC -->
+<!-- INDICE -->
 * [1. Introduction](#1-introduction)
     * [1.1 Document Purpose](#11-document-purpose)
     * [1.2 Product Scope](#12-product-scope)
@@ -26,7 +26,7 @@
     * [3.6 AI/ML](#36-aiml)
 * [4. Verification](#4-verification)
 * [5. Appendixes](#5-appendixes)
-<!-- TOC -->
+<!-- INDICE -->
 
 
 
