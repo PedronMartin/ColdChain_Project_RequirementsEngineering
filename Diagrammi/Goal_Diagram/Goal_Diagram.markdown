@@ -13,49 +13,76 @@ Questi requisiti descrivono comportamenti desiderati del sistema complessivo che
 
 ### Ramo A: gestione spedizioni e dispositivi (configurazione)
 
+Definizione macro-goal: Tutti i dispositivi IoT e i dati relativi alle spedizioni devono essere censiti, configurati e associati correttamente a sistema prima che il trasporto abbia inizio. Tipo Achieve
+
 Gestione dispositivi (devices):
 
-1. Sotto-Goal 1: Achieve [DeviceProvisionedAndDecommissioned] (requisito assegnato al software cloud, i dispositivi vengono regolarmente registrato o dismessi dal sistema);
-2. Sotto-Goal 2: Achieve [DeviceListed] (requisito assegnato al software cloud, i dispositivi vengono tenuti sotto traccia dal sistema);
-3. Sotto-Goal 3: Achieve [DeviceAssociatedToShipment] (requisito assegnato al software cloud,, i dispositivi vengono associati/dissociati alle spedizioni);
-4. Sotto-Goal 4: Achieve [DeviceConfigured] (requisito assegnato al software cloud, i dispositivi vengono configurati di frequenze di campionamento e metriche/grandezze).
+Definizione: Tutti i dispositivi IoT devono essere registrati nel sistema, configurati con i parametri operativi richiesti e associati in modo univoco alle spedizioni prima della partenza.
+
+1. Sotto-Goal 1: Achieve [DeviceProvisionedAndDecommissioned] (requisito assegnato al software DeviceManager, i dispositivi vengono regolarmente registrato o dismessi dal sistema);
+2. Sotto-Goal 2: Achieve [DeviceListed] (requisito assegnato al software DeviceManager, i dispositivi vengono tenuti sotto traccia dal sistema);
+3. Sotto-Goal 3: Achieve [DeviceAssociatedToShipment] (requisito assegnato al software DeviceManager, i dispositivi vengono associati/dissociati alle spedizioni);
+4. Sotto-Goal 4: Achieve [DeviceConfigured] (requisito assegnato all'app gateway, i dispositivi vengono configurati di frequenze di campionamento e metriche/grandezze).
 
 Gestione spedizioni (shipments):
 
-1. Sotto-Goal 5: Achieve [ShipmentLifeCycleManaged] (requisito assegnato al software cloud, vengono gestiti creazione, modifica, cancellazione logica);
-2. Sotto-Goal 6: Achieve [ShipmentStateTransitionExecuted] (requisito assegnato al software cloud, vengono gestiti stati di start, stop, pause, resume).
+Defininizione: Il sistema deve consentire la gestione completa del ciclo di vita delle spedizioni (creazione, visualizzazione dello storico, modifica delle informazioni e cancellazione logica) e la gestione delle transizioni tra i relativi stati logici di viaggio (start, stop, pause, resume).
+
+1. Sotto-Goal 5: Achieve [ShipmentLifeCycleManaged] (requisito assegnato al software ShipmentManager, vengono gestiti creazione, modifica, cancellazione logica);
+2. Sotto-Goal 6: Achieve [ShipmentStateTransitionExecuted] (requisito assegnato al sofware ShipmentManager, vengono gestiti stati di start, stop, pause, resume).
+
+POST-OBJECTIVER: i sotto-goal 5 e 6 sono stati uniti dato che responsabilità dello stesso agente; ora abbiamo ShipmentReady.
 
 ### Ramo B: Tracciamento ambientale e batteria (transito)
 
+Definizione: iw parametri ambientali della merce fragile e lo stato dei dispositivi devono essere monitorati e trasmessi in modo sicuro e integro verso la piattaforma cloud per tutta la durata del trasporto, dalla creazione della spedizione fino alla consegna finale.
+
 Tracking ambientale continuo:
 
-1. Sotto-Goal 7: Maintain [ContinuousTracking] (goal multi-agente ad alto livello);
-2. Sotto-Goal 8: Maintain [PhysicalParametersSampledBySensor] (aspettativa assegnata all agente fisico sensore IoT per il corretto campionamento dei dati);
-3. Sotto-Goal 9: Maintain [DataBufferedLocallyIfNoBLE] (aspettativa/requisito assegnato al firmware del sensore IoT, gestisce la memoria flash offline in assenza di connessione BLE).
+Main goal: EnvironmentalParametersLogged (Mantain).
+
+Definizione: i sensori fisici posizionati all'interno dei colli devono registrare continuamente le grandezze fisiche ambientali, proteggendole alla sorgente contro perdite di connessione o tentativi di manomissione fisica.
+
+1. Sotto-Goal 7: Maintain [PhysicalParametersSampledBySensor]. Definizione: il dispositivo sensore deve eseguire la lettura periodica dei sensori fisici delle grandezze richieste secondo la frequenza programmata. Agente di riferimento: PhysicalTransducer.
+2. Sotto-Goal 8: Maintain [DataBufferedLocallyIfNoBLE]. Definizione: in assenza di connessione Bluetooth attiva con il gateway mobile, le misurazioni campionate devono essere memorizzate temporaneamente all'interno della memoria flash locale per evitare qualsiasi perdita di dati. Agente di riferimento: OnBoardFirmware.
+3. Sotto-Goal 9: Maintain [DataDigitallySignedAtSource]. Definizione: ogni misurazione deve essere firmata crittograficamente all'origine tramite algoritmo asimmetrico e chiave privata salvata sul chip sicuro prima di essere trasmessa all'esterno. Agente di riferimento: SecureElement.
 
 Firma digitale alla sorgente:
-1. Sotto-Goal 10: Maintain [DataDigitallySignedAtSource] (aspettativa assegnata all agente sensore IoT: il chip crittografico deve firmare i dati appena campionati);
-1.1 Sotto-Goal del Goal 10: Maintain [DataIntegrityVerified] (requisito assegnato all'IntegrityVerifier (sotto-agente software della macchina, incaricato specificamente di questa funzione di quality assurance), ogni pacchetto di dati ambientali ricevuto dal cloud deve essere sottoposto a verifica matematica della firma crittografica per confermare che non sia stato alterato o corrotto prima della memorizzazione definitiva;
-2. Sotto-Goal 11: Avoid [UnauthorizedDataModification] (requisito assegnato al software cloud: impedisce la modifica dei dati storici a magazzinieri, autisti o manager);
+
+Main goal: DataTransmissionSecureAndVerified (Mantain).
+
+Definizione: i dati telemetrici devono essere trasferiti in modo sicuro dal sensore al Cloud tramite l'app Gateway mobile, garantendone l'integrità matematica e l'immutabilità dello storico.
+
+1. Sotto-Goal 10: Maintain [DataIntegrityVerified]. Definizione: il sistema deve verificare la firma crittografica di ciascun pacchetto dati ricevuto usando la chiave pubblica del sensore associato, segnalando immediatamente anomalie in caso di firma non valida. Agente di riferimento: IntegrityVerifier.
+2. Sotto-Goal 11: Avoid [UnauthorizedDataModification]. Definizione: il backend Cloud non deve consentire ad alcun utente o attore di modificare o eliminare i record storici di temperatura e telemetria memorizzati. Agente di riferimento: ShipmentManager.
 
 Monitoraggio della batteria:
+
+Main goal: BatteryStatusTracked (Mantain).
+
+Definizione: il livello di carica dei dispositivi a batteria deve essere monitorato continuamente, avvisando i gestori in caso di carica residua insufficiente a completare il viaggio. //da rivedere tutta la definizione...fa cagare.
+
 1. Sotto-Goal 12: Maintain [BatteryStatusMonitored] (goal multi-agente);
-2. Sotto-Goal 13: Maintain [BatteryLevelTransmittedBySensor] (aspettativa assegnata al sensore IoT);
-3. Sotto-Goal 14: Achieve [LowBatteryNotified] (requisito assegnato al software cloud, invio notifiche manutenzione per batteria sotto il 15%).
+2. Sotto-Goal 13: Maintain [BatteryLevelTransmittedBySensor]. Definizione: il firmware del dispositivo deve acquisire periodicamente lo stato di carica della propria batteria interna e allegarlo come metadato a ogni pacchetto di trasmissione BLE. Agente di riferimento: OnBoardFirmware.
+3. Sotto-Goal 14: Achieve [LowBatteryNotified]. Definizione: il sistema cloud deve monitorare lo stato di carica ricevuto e inviare una notifica o un allarme visivo qualora il livello della batteria del dispositivo scenda sotto la soglia del 15%. Agente di riferimento: DeviceManager.
 
 (NB: il 15% è a tutti gli effetti una scelta progettuale.)
 
 ### Ramo C: Connessione e trasmissione (gateway)
 
+Main goal: DataExposedAndCertified. Achieve [DataExposedAndCertified].
+
+Definizione: i dati storici di viaggio della spedizione, con le relative firme crittografiche, devono essere resi visibili agli attori umani del sistema e condivisibili in modo sicuro verso l'esterno tramite interfacce applicative (es. QrCode).
+
 Sincronizzazione automatica:
-1. Sotto-Goal 15: Achieve [BLEAutoConnectionAndDownload] (requisito assegnato al software gateway app, applicazione mobile Gateway deve tentare automaticamente la connessione Bluetooth Low Energy con il sensore non appena si trova entro il raggio di copertura radio (<10m) e scaricare i dati accumulati nella memoria flash);
-2. Sotto-Goal 16: Achieve [AsynchronousDataUploadToCloud] (requisito assegnato al software gateway app, deve conservare localmente i dati scaricati dal sensore e inoltrarli in modo asincrono al database Cloud non appena rileva la presenza di connettività internet (Wi-Fi o rete cellulare 4G/5G).
+1. Sotto-Goal 15: Achieve [BLEAutoConnectionAndDownload]. Definizione: l'applicazione mobile Gateway deve connettersi automaticamente via Bluetooth Low Energy (BLE) al sensore non appena si trova entro la portata radio (<10 metri) e scaricare i dati storici accumulati nella memoria flash. Agente di riferimento: AppGateway.
+2. Sotto-Goal 16: Achieve [AsynchronousDataUploadToCloud]. Definizione: l'applicazione mobile Gateway deve inoltrare in modo sicuro e asincrono i pacchetti dati scaricati dal sensore verso il Cloud SaaS non appena è disponibile la connettività di rete (4G/5G o WIFI). Agente di riferimento: AppGateway.
 
 ### Ramo D: Visualizzazione e integrazione (consegna)
 
 Dashboard e allarmi:
 1. Sotto-Goal 17: Achieve [OutofRangeConditionsHighlighted] (requisito assegnato al software cloud, evidenziazione grafica dei parametri fuori soglia nella dashboard);
-2. Sotto-Goal 18: Achieve [DashboardAccessibleToActors] (requisito assegnato al software cloud, accesso continuo profilato per manager, autisti, consumatori e enti di certificazione).
+2. Sotto-Goal 18: Achieve [DashboardAccessibleToActors]. Definizione: il sistema deve mettere a disposizione una dashboard web profilata per consentire la visualizzazione e l'ispezione dello storico dei parametri fisici di viaggio a manager, autisti, consumatori e enti di certificazione. Agente di riferimento: DashboardManager.
 
 Interoperabilità via API:
 1. Sotto-Goal 19: Achieve [SecureDataExposedViaAPI] (requisito assegnato al software cloud, esposizione delle API per lo scambio sicuro dei dati con enti terzi).
@@ -72,7 +99,7 @@ Architettura SaaS cloud: è una scelta tecnologica ed architetturale pregressa. 
 Sensori di emergenza (guasto sensori): questa è una mitigazione organizzativa per la sicurezza (fault tolerance). Non fa parte dei flussi operativi standard del software. Questa assunzione non va nel Goal Diagram principale, ma la useremo nell Obstacle Resolution Diagram per risolvere l'ostacolo guasto del sensore in viaggio.
 
 ## Struttura diagramma disegnata
-               [Maintain: FragileGoodsIntegrityPreserved]
+               [Maintain: ProductIntegrityPreserved]
                                (Radice)
                         /              |               \
                      AND              AND              AND
@@ -83,7 +110,7 @@ Sensori di emergenza (guasto sensori): questa è una mitigazione organizzativa p
           (Sotto-goal 1-6)         (Sotto-goal 7-16)         (Sotto-goal 17-19)
           
 
-Questi nodi si posizionano esattamente sotto il Goal Radice (Maintain [FragileGoodsIntegrityPreserved]) tramite un raffinamento AND e raggruppano logicamente i sotto-goal foglia che abbiamo già definito. Abbiamo quindi:
+Questi nodi si posizionano esattamente sotto il Goal Radice (Maintain [ProductIntegrityPreserved]) tramite un raffinamento AND e raggruppano logicamente i sotto-goal foglia che abbiamo già definito. NB: è molto importante la sezione Nome Formale in quanto nei diagrammi usiamo una sottoversione del nome per allegerire il carico visivo dei diagrammi (es.  Achieve [ShipmentAndDevicesReady] nel diagramma è ShipmentAndDevicesReady). Abbiamo quindi:
 
 1. Macro-Goal intermedio 1: configurazione. Questo nodo unifica tutta la fase iniziale di inserimento dati e accoppiamento dell'hardware prima della partenza.
 
@@ -126,10 +153,28 @@ Questo nodo rappresenta l'erogazione del servizio verso l'esterno, garantendo ch
 
     Nome Formale: Achieve [DataExposedAndCertified]
     
-    Definizione: i dati storici consolidati devono essere messi a disposizione in modo profilato agli attori interessati tramite dashboard web (con evidenza degli allarmi) e tramite interfacce API sicure per gli enti terzi e i consumatori;
+    Definizione: i dati storici consolidati devono essere messi a disposizione in modo profilato agli attori interessati tramite dashboard web (con evidenza degli allarmi) e tramite interfacce API sicure per gli enti terzi e i consumatori.
     
     Raffinamento: si scompone in AND nei seguenti sotto-goal foglia:
     
         Achieve [OutofRangeConditionsHighlighted] (Sotto-Goal 17)
         Achieve [DashboardAccessibleToActors] (Sotto-Goal 18)
         Achieve [SecureDataExposedViaAPI] (Sotto-Goal 19)
+
+### Agenti usati
+
+1. DeviceManager: componente software del backend Cloud SaaS deputato all'anagrafica dei dispositivi IoT. Gestisce il loro inserimento (provisioning) e la loro dismissione (decommissioning) a sistema, mostra l'elenco dello stato dei sensori e invia i parametri di configurazione remota (frequenza di campionamento e soglie di allarme) ai sensori fisici. Categoria: Software Agent. Monitora: richieste di registrazione/dismissione inviate dagli amministratori, stato di connessione dei dispositivi. Controlla: database dei dispositivi registrati, parametri di configurazione remota dei sensori (intervalli di campionamento e grandezze fisiche);
+
+2. ShipmentManager: componente software del backend Cloud SaaS incaricato di gestire l'intero ciclo di vita delle spedizioni. Si occupa della creazione, modifica, visualizzazione e cancellazione logica dei record di spedizione, oltre a validare ed eseguire le transizioni di stato logiche del viaggio (start, stop, pause, resume) su richiesta degli attori autorizzati. Categoria: Software Agent. Monitora: richieste di transizione di stato della spedizione, comandi di avvio/pausa/arresto impartiti dagli utenti (tramite Dashboard o App). Controlla: stato logico della spedizione (creato, in transito, in pausa, completato), record dei dati storici delle spedizioni memorizzati a database;
+
+3. AppGateway: applicazione software installata sul dispositivo mobile (smartphone/tablet) dell'autista. Funge da gateway intelligente sul campo per rilevare i sensori IoT tramite protocollo Bluetooth Low Energy (BLE), scansionare i codici identificativi per l'associazione sul campo e trasmettere in modo sicuro e asincrono i dati delle misurazioni verso il Cloud. Categoria: Software Agent. Monitora: identificativi dei sensori fisici (tramite scansione fotocamera di QR/Barcode), pacchetti dati trasmessi via BLE dai sensori nel raggio d'azione (distanza < 10m). Controlla: richieste di accoppiamento logico tra il sensore e la spedizione, buffer locale dei dati scaricati, trasmissione asincrona dei dati memorizzati localmente verso il Cloud tramite rete cellulare (4G/5G);
+
+4. PhysicalTransducer: componente hardware analogico/digitale interno al sensore IoT preposto alla misurazione e quantificazione delle grandezze fisiche ambientali (temperatura, umidità, accelerometro per vibrazioni, ...) secondo la frequenza di campionamento impostata. Categoria: Environment Agent. Monitora: stato fisico ambientale interno al collo di spedizione. Controlla: valori digitali grezzi di temperatura, umidità e vibrazioni e le altre grandezze richieste dalla spedizione;
+
+5. OnBoardFirmware: software elementare a basso livello (firmware) eseguito sul microcontrollore del sensore IoT. Gestisce la temporizzazione dei campionamenti, la scrittura nel buffer di memoria flash locale e l'invio dei dati tramite BLE. Categoria: Environment Agent. Monitora: livello della batteria, disponibilità della memoria flash interna, stato di connessione BLE. Controlla: buffer locale di salvataggio (memoria flash), pacchetti di dati inviati via BLE;
+
+6. SecureElement: chip crittografico hardware dedicato e sicuro, integrato nel sistema del sensore IoT, deputato alla memorizzazione blindata della chiave privata e alla firma matematica ad alta velocità dei dati. Categoria: Environment Agent. Monitora: richieste di cifratura/firma provenienti dal firmware di bordo. Controlla: firma crittografica asimmetrica applicata ai pacchetti dati di telemetria;
+
+7. IntegrityVerifier: componente software del backend Cloud SaaS incaricato di convalidare crittograficamente le firme asimmetriche dei pacchetti dati ricevuti dall'app Gateway, assicurando l'assoluta integrità dei dati. Categoria: Software Agent. Monitora: nuovi pacchetti dati in arrivo nel Cloud, chiavi pubbliche dei sensori registrati. Controlla: stato di validazione del dato (valido/manomesso), segnalazione immediata di violazione dell'integrità;
+
+8. DashboardManager: Categoria: Monitora:
