@@ -81,11 +81,11 @@ Sincronizzazione automatica:
 ### Ramo D: Visualizzazione e integrazione (consegna)
 
 Dashboard e allarmi:
-1. Sotto-Goal 17: Achieve [OutofRangeConditionsHighlighted] (requisito assegnato al software cloud, evidenziazione grafica dei parametri fuori soglia nella dashboard);
+1. Sotto-Goal 17: Achieve [OutofRangeConditionsHighlighted]. Definizione: la dashboard web deve evidenziare in modo visivamente chiaro e immediato (es. marcatori grafici rossi o alert) tutti i campionamenti fisici che hanno evaso le soglie di tolleranza impostate per la spedizione. Agente di riferimento: ashboardManager.
 2. Sotto-Goal 18: Achieve [DashboardAccessibleToActors]. Definizione: il sistema deve mettere a disposizione una dashboard web profilata per consentire la visualizzazione e l'ispezione dello storico dei parametri fisici di viaggio a manager, autisti, consumatori e enti di certificazione. Agente di riferimento: DashboardManager.
 
 Interoperabilità via API:
-1. Sotto-Goal 19: Achieve [SecureDataExposedViaAPI] (requisito assegnato al software cloud, esposizione delle API per lo scambio sicuro dei dati con enti terzi).
+1. Sotto-Goal 19: Achieve [SecureDataExposedViaAPI]. Definizione: il sistema deve esporre interfacce API REST sicure per consentire l'esportazione automatizzata e l'ispezione dei dati storici di spedizione e delle relative firme di conformità da parte di sistemi informatici esterni ed enti terzi. Agente di riferimento: APIManager.
 
 ## Requisiti che si spostano come assunzioni (no diagrammi principali)
 Questi punti non sono obiettivi di comportamento software (goal), ma vincoli fisici dell ambiente, decisioni tecnologiche a priori o procedure organizzative esterne. Inserirli nel Goal Diagram lo renderebbe ridondante e confusionario. Vengono invece inseriti nell IEEE-830 e usati come ipotesi di dominio (HP) per validare i requisiti. La lista è:
@@ -177,4 +177,6 @@ Questo nodo rappresenta l'erogazione del servizio verso l'esterno, garantendo ch
 
 7. IntegrityVerifier: componente software del backend Cloud SaaS incaricato di convalidare crittograficamente le firme asimmetriche dei pacchetti dati ricevuti dall'app Gateway, assicurando l'assoluta integrità dei dati. Categoria: Software Agent. Monitora: nuovi pacchetti dati in arrivo nel Cloud, chiavi pubbliche dei sensori registrati. Controlla: stato di validazione del dato (valido/manomesso), segnalazione immediata di violazione dell'integrità;
 
-8. DashboardManager: Categoria: Monitora:
+8. DashboardManager: componente software del backend Cloud SaaS incaricato di generare le pagine web della dashboard, gestire i permessi di accesso per i vari attori e applicare gli stili grafici per evidenziare visivamente le anomalie nei grafici di telemetria. Categoria: Software Agent. Monitora: richieste di accesso degli utenti, storico dei dati fisici memorizzati nel database. Controlla: interfaccia grafica della dashboard web, generazione di allarmi grafici a schermo per i parametri fuori soglia.
+
+9. APIManager: componente software del Cloud SaaS dedicato alla gestione dell'interoperabilità esterna. Si occupa di autenticare le richieste esterne tramite token di sicurezza ed esporre gli endpoint API REST per l'esportazione dei dati. Categoria: Software Agent. Monitora: richieste API in arrivo da server esterni o sistemi gestionali di terze parti. Controlla: risposte API strutturate contenenti lo storico del viaggio e le firme digitali associate.
