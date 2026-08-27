@@ -1,19 +1,8 @@
-#### Premessa
-Per l'analisi dei rischi e la robustezza del sistema, separiamo rigidamente gli obiettivi ideali dalle minacce fisiche, logiche o comportamentali che possono comprometterne il soddisfacimento. Nel metamodello KAOS, l'analisi degli ostacoli (**Obstacle Analysis**) risponde alla domanda fondamentale del **"WHY NOT?"** (Cosa può andare storto nel sistema o nell'ambiente?) [11.pdf, 14.pdf, 53].
+## Ostacoli da trasporre nei diagrammi
+Questi ostacoli descrivono anomalie di comportamento del software, guasti hardware dell'ambiente, disconnessioni fisiche o incidenti procedurali che minacciano direttamente i sotto-goal foglia del sistema.
 
-Un ostacolo $O$ è un'asserzione di dominio prescrittiva che soddisfa due condizioni formali [15.pdf, 47.pdf]:
-1. **Ostruzione (Obstruction):** $\{O, Dom\} \models \neg G$ (l'ostacolo $O$, combinato con le proprietà del dominio $Dom$, ostruisce logicamente il Goal $G$);
-2. **Consistenza di Dominio (Domain Consistency):** $\{O, Dom\} \not\models \text{false}$ (l'ostacolo è fisicamente possibile e non contraddice le regole fisiche dell'ambiente).
-
-Il presente documento descrive in modo strutturato e formale tutti gli ostacoli identificati per il sistema di tracciamento della catena del freddo, suddivisi per ramo funzionale speculare al modello dei Goal [53, 55]. Per i rischi critici che minacciano la continuità o la sicurezza del tracciamento, vengono dettagliati i relativi **Resolution Goal** (contromisure re-iniettate nel Goal Diagram); per gli ostacoli che esulano dalla portata logica del software (es. guasti fisici permanenti o errori procedurali umani), viene fornita la giustificazione metodologica della mancata risoluzione diretta da parte della macchina software [12.pdf, 41.pdf, 49.pdf].
-
----
-
-#### Ostacoli da trasporre nei diagrammi (Analisi dei Rischi)
-Questi ostacoli descrivono anomalie di comportamento del software, guasti hardware dell'ambiente, disconnessioni fisiche o incidenti procedurali che minacciano direttamente i sotto-goal foglia del sistema [16.pdf, 55].
-
-##### Ramo A: gestione spedizioni e dispositivi (configurazione)
-Questo ramo analizza i rischi legati alla fase di inserimento dati nel Cloud e all'accoppiamento iniziale dei dispositivi fisici ai colli prima della partenza [53, 56].
+### Ramo A: gestione spedizioni e dispositivi (configurazione)
+Questo ramo analizza i rischi legati alla fase di inserimento dati nel Cloud e all'accoppiamento iniziale dei dispositivi fisici ai colli prima della partenza.
 
 1. **Ostacolo 1:** `DeviceNotProvisionedOrDecommissioned`
    * **Goal Ostruito:** `Achieve [DeviceProvisionedAndDecommissioned]` (Requisito software assegnato al software `DeviceManager`).
@@ -33,8 +22,8 @@ Questo ramo analizza i rischi legati alla fase di inserimento dati nel Cloud e a
    * **Categoria:** `Communication Failure`
    * **Risoluzione Software:** **Nessuna**. Questo rischio viene gestito ed eliminato in modo nativo a basso livello dai tentativi di ritrasmissione automatici propri del protocollo Bluetooth Low Energy (BLE) e dalle procedure di handshake del firmware di bordo.
 
-##### Ramo B: Tracciamento ambientale e batteria (transito)
-Questo ramo tratta i rischi fisici ed elettronici legati al campionamento continuo dei parametri e alla sicurezza crittografica dei dati telemetrici durante il transito [53, 56].
+### Ramo B: Tracciamento ambientale e batteria (transito)
+Questo ramo tratta i rischi fisici ed elettronici legati al campionamento continuo dei parametri e alla sicurezza crittografica dei dati telemetrici durante il transito.
 
 4. **Ostacolo 4:** `SensorPowerLoss`
    * **Goal Ostruito:** `Maintain [PhysicalParametersSampledBySensor]` (Aspettativa d'ambiente assegnata all'agente `PhysicalTransducer`).
@@ -56,8 +45,8 @@ Questo ramo tratta i rischi fisici ed elettronici legati al campionamento contin
    * **Categoria:** `Hardware Failure`
    * **Risoluzione Software:** **Nessuna**. Trattandosi di un danno fisico irreversibile sul silicio del microcontrollore del sensore, la macchina software non ha alcuna possibilità di ripristinare il componente guasto. Il sistema cloud rileva l'anomalia (mancanza di firme conformi e fallimento sistematico del convalidatore), evidenzia lo stato di non conformità della merce e segnala la necessità di scartare il sensore guasto a fine viaggio.
 
-##### Ramo C: Connessione e trasmissione (gateway)
-Questo ramo analizza i rischi relativi alla trasmissione wireless a corto raggio (BLE) e all'inoltro WAN cellulare (4G/5G) verso la piattaforma SaaS [53, 56].
+### Ramo C: Connessione e trasmissione (gateway)
+Questo ramo analizza i rischi relativi alla trasmissione wireless a corto raggio (BLE) e all'inoltro WAN cellulare (4G/5G) verso la piattaforma SaaS.
 
 7. **Ostacolo 7:** `BLEConnectionLost`
    * **Goal Ostruito:** `Maintain [BLEAutoConnectionAndDownload]` (Requisito software assegnato all'agente `AppGateway`).
@@ -76,8 +65,8 @@ Questo ramo analizza i rischi relativi alla trasmissione wireless a corto raggio
    * **Risoluzione (Mitigazione Intrinseca):** `Achieve [AsynchronousDataUploadToCloud]` (Requisito software assegnato all'agente `AppGateway`).
    * **Meccanismo di Risoluzione:** Il requisito stesso di caricamento asincrono funge da contromisura. L'App Gateway mobile memorizza i dati scaricati dal sensore in un buffer locale sicuro sullo smartphone dell'autista. Il software esegue tentativi di upload ciclici (retry logici) ad intervalli regolari: i dati vengono inoltrati al backend Cloud solo quando viene rilevato il ripristino di una connessione di rete stabile, tollerando lunghi periodi di blackout cellulare (es. gallerie, zone montane).
 
-##### Ramo D: Visualizzazione e integrazione (consegna)
-Questo ramo copre i rischi di mancato accesso o visualizzazione errata dello storico dati da parte degli attori finali durante la verifica della spedizione [53, 56].
+### Ramo D: Visualizzazione e integrazione (consegna)
+Questo ramo copre i rischi di mancato accesso o visualizzazione errata dello storico dati da parte degli attori finali durante la verifica della spedizione.
 
 9. **Ostacolo 9:** `QrCodeUnreadable`
    * **Goal Ostruito:** `Achieve [DashboardAccessibleToActors]` (Requisito software assegnato all'agente `DashboardManager`).
