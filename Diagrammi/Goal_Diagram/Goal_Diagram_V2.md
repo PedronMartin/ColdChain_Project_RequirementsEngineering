@@ -35,7 +35,7 @@ Firma digitale alla sorgente:
 Main goal: DataTransmissionSecureAndVerified (Maintain).
 Definizione: i dati telemetrici devono essere trasferiti in modo sicuro dal sensore al Cloud tramite l'app Gateway mobile, garantendone l'integrità matematica e l'immutabilità dello storico.
 1. Sotto-Goal 10: Maintain [DataIntegrityVerified]. Definizione: il sistema deve verificare la firma crittografica di ciascun pacchetto dati ricevuto usando la chiave pubblica del sensore associato, segnalando immediatamente anomalie in caso di firma non valida. Agente di riferimento: IntegrityVerifier.
-2. Sotto-Goal 11: Avoid [UnauthorizedDataModification]. Definizione: il backend Cloud non deve consentire ad alcun utente o attore di modificare o eliminare i record storici di temperatura e telemetria memorizzati. Agente di riferimento: ShipmentManager.
+2. Sotto-Goal 11: Avoid [UnauthorizedDataModification]. Definizione: il backend Cloud non deve consentire ad alcun utente o attore di modificare o eliminare i record storici memorizzati. Agente di riferimento: ShipmentManager.
 
 Monitoraggio della batteria:
 Main goal: BatteryStatusTracked (Maintain).
@@ -55,6 +55,7 @@ Sincronizzazione automatica:
 Dashboard e allarmi:
 1. Sotto-Goal 17: Achieve [OutofRangeConditionsHighlighted]. Definizione: la dashboard web deve evidenziare in modo visivamente chiaro e immediato (es. marcatori grafici rossi o alert) tutti i campionamenti fisici che hanno evaso le soglie di tolleranza impostate per la spedizione. Agente di riferimento: DashboardManager.
 2. Sotto-Goal 18: Achieve [DashboardAccessibleToActors]. Definizione: il sistema deve mettere a disposizione una dashboard web profilata per consentire la visualizzazione e l'ispezione dello storico dei parametri fisici di viaggio a manager, autisti, consumatori e enti di certificazione. Agente di riferimento: DashboardManager.
+3. Sotto-Goal 20: Achieve [DashboardAccessibleViaCode]. Definizione: il sistema deve consentire l'accesso ai dati della spedizione tramite l'inserimento manuale su pagina web del codice identificativo alfanumerico stampato in chiaro sotto il QR Code. Agente di riferimento: DashboardManager.
 
 Interoperabilità via API:
 1. Sotto-Goal 19: Achieve [SecureDataExposedViaAPI]. Definizione: il sistema deve esporre interfacce API REST sicure per consentire l'esportazione automatizzata e l'ispezione dei dati storici di spedizione e delle relative firme di conformità da parte di sistemi informatici esterni ed enti terzi. Agente di riferimento: APIManager.
@@ -75,10 +76,8 @@ Raffinamento: si scompone in AND nel sotto-obiettivo DevicesReady (che raggruppa
 Nome Formale: Maintain [ContinuousTrackingAndSecureDataTransmission]
 Definizione: i parametri ambientali e lo stato della batteria devono essere campionati con continuità, firmati digitalmente per garantirne l'integrità e trasmessi in modo asincrono al cloud tramite l'applicazione Gateway.
 Raffinamento: si scompone in AND nei tre sotto-obiettivi BatteryStatusTracked, EnvironmentalParametersLogged e DataTransmissionSecureAndVerified (che a sua volta include i Sotto-Goal 15 e 16 per la sincronizzazione, oltre ai requisiti di integrità).
-3. Macro-Goal intermedio 3: accessibilità e certificazione dati Questo nodo rappresenta l'erogazione del servizio verso l'esterno, garantendo che i dati siano consultabili tramite dashboard e API, evidenziando eventuali anomalie.
-Nome Formale: Achieve [DataExposedAndCertified]
-Definizione: i dati storici consolidati devono essere messi a disposizione in modo profilato agli attori interessati tramite dashboard web (con evidenza degli allarmi) e tramite interfacce API sicure per gli enti terzi e i consumatori.
-Raffinamento: si scompone in AND nei sotto-goal foglia 17, 18, 19.
+3. Macro-Goal intermedio 3: accessibilità e certificazione dati Questo nodo rappresenta l'erogazione del servizio verso l'esterno, garantendo che i dati siano consultabili tramite dashboard e API, evidenziando eventuali anomalie. Nome Formale: Achieve [DataExposedAndCertified] Definizione: i dati storici consolidati devono essere messi a disposizione in modo profilato agli attori interessati tramite dashboard web (con evidenza degli allarmi) e tramite interfacce API sicure per gli enti terzi e i consumatori. Raffinamento: si scompone in AND nei sotto-goal foglia 17, 18, 19, 20.
+
 ##### Agenti usati
 1. DeviceManager: componente software del backend Cloud SaaS deputato all'anagrafica dei dispositivi IoT. Gestisce il loro inserimento (provisioning) e la loro dismissione (decommissioning) a sistema, mostra l'elenco dello stato dei sensori e invia i parametri di configurazione remota (frequenza di campionamento e soglie di allarme) ai sensori fisici. Categoria: Software Agent. Monitora: richieste di registrazione/dismissione inviate dagli amministratori, stato di connessione dei dispositivi. Controlla: database dei dispositivi registrati, parametri di configurazione remota dei sensori (intervalli di campionamento e grandezze fisiche);
 2. ShipmentManager: componente software del backend Cloud SaaS incaricato di gestire l'intero ciclo di vita delle spedizioni. Si occupa della creazione, modifica, visualizzazione e cancellazione logica dei record di spedizione, oltre a validare ed eseguire le transizioni di stato logiche del viaggio (start, stop, pause, resume) su richiesta degli attori autorizzati. Categoria: Software Agent. Monitora: richieste di transizione di stato della spedizione, comandi di avvio/pausa/arresto impartiti dagli utenti (tramite Dashboard o App). Controlla: stato logico della spedizione (creato, in transito, in pausa, completato), record dei dati storici delle spedizioni memorizzati a database;
