@@ -54,7 +54,7 @@ Main goal: DataTransmissionSecureAndVerified (Mantain).
 Definizione: i dati telemetrici devono essere trasferiti in modo sicuro dal sensore al Cloud tramite l'app Gateway mobile, garantendone l'integrità matematica e l'immutabilità dello storico.
 
 1. Sotto-Goal 10: Maintain [DataIntegrityVerified]. Definizione: il sistema deve verificare la firma crittografica di ciascun pacchetto dati ricevuto usando la chiave pubblica del sensore associato, segnalando immediatamente anomalie in caso di firma non valida. Agente di riferimento: IntegrityVerifier.
-2. Sotto-Goal 11: Avoid [UnauthorizedDataModification]. Definizione: il backend Cloud non deve consentire ad alcun utente o attore di modificare o eliminare i record storici di temperatura e telemetria memorizzati. Agente di riferimento: ShipmentManager.
+2. Sotto-Goal 11: Avoid [UnauthorizedDataModification]. Definizione: il backend Cloud non deve consentire ad alcun utente o attore di modificare o eliminare i record storici memorizzati. Agente di riferimento: ShipmentManager.
 
 Monitoraggio della batteria:
 
