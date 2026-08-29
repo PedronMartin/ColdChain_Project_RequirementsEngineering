@@ -4,11 +4,11 @@ Per garantire la massima coerenza inter-vista, tutti i collegamenti di monitorag
 | :--- | :--- | :--- | :---: | :--- | :--- |
 | **`DeviceManager`** | Software | `IoTDevice` | **`CONTROL`** | Istanza di `IoTDevice` | Registra e attiva il dispositivo hardware nel sistema (onboarding). |
 | | | `IoTDevice` | **`MONITOR`** | `batteryLevel`, `bleConnectionStatus` | Rileva lo stato di carica della batteria e la presenza del sensore a backend. |
-| **`ShipmentManager`** | Software | `Shipment` | **`MONITOR`** | `logicalState` | Ispeziona lo stato corrente del viaggio (nessun controllo diretto per via della Domain Assumption di creazione). |
+| **`ShipmentManager`** | Software | `Shipment` | **`MONITOR/CONTROL`** | `logicalState` | Ispeziona lo stato corrente del viaggio (nessun controllo diretto sull'avvio per via della Domain Assumption di creazione ma può modificarne lo stato creazione -> in transito -> ecc.ecc.). Può sembrare un controsenso ma nella teoria delle macchine a stati, per cambiare uno stato deterministico bisogna sapere lo stato precedente. |
 | | | `ConfigurationProfile`| **`CONTROL`** | Istanza di `ConfigurationProfile`, `samplingInterval` | Crea e configura il profilo di viaggio associato alla spedizione. |
 | | | `ThresholdRule` | **`CONTROL`** | `metricName`, `minValue`, `maxValue` | Imposta e definisce le soglie di tolleranza fisiche impartite dal manager. |
 | **`AppGateway`** | Software | `ShippingLabel` | **`MONITOR`** | `qrCodePayload`, `backupAlphanumericCode` | Esegue la scansione dell'etichetta fisica per identificare il viaggio (nessun controllo sul QR che è statico). |
-| | | `LocalGatewayBuffer` | **`CONTROL`** | `pendingPacketsCount`, `isCloudSynchronized` | Gestisce l'accodamento locale dei dati sul telefono e la loro trasmissione asincrona. |
+| | | `LocalGatewayBuffer` | **`CONTROL/MONITOR`** | `pendingPacketsCount`, `isCloudSynchronized` | Gestisce l'accodamento locale dei dati sul telefono e la loro trasmissione asincrona (neccesita monitoraggio). |
 | | | `IoTDevice` | **`MONITOR`** | `bleConnectionStatus` | Rileva lo stato di connessione BLE attiva con il dispositivo sensore. |
 | **`PhysicalTransducer`**| Ambiente | `EnvironmentalMeasurement`| **`CONTROL`** | `measuredValue`, `timestamp`, `metricName` | Rileva la grandezza fisica (temperatura, umidità, ecc.) sul campo e genera la misura. |
 | **`OnBoardFirmware`** | Software | `IoTDevice` | **`CONTROL`** | `batteryLevel`, `availableFlashMemory`, `bleConnectionStatus` | Aggiorna lo stato di salute interna dell'hardware (diagnostica di bordo). |
@@ -22,6 +22,7 @@ Per garantire la massima coerenza inter-vista, tutti i collegamenti di monitorag
 | | | `IoTDevice` | **`MONITOR`** | `publicKey` | Recupera la chiave pubblica memorizzata del sensore per decifrare l'hash. |
 | **`DashboardManager`**| Software | `AlarmNotification` | **`CONTROL`** | `alarmType`, `creationTimestamp`, `isDismissed` | Genera l'allarme visivo a schermo e permette la presa visione (`isDismissed`). |
 | | | `EnvironmentalMeasurement`| **`MONITOR`** | `measuredValue`, `isOutOfRange` | Legge lo storico delle misure e delle anomalie per renderizzarle in tempo reale. |
+| | | CryptographicSignature | **`MONITOR`** | `integrityStatus` | Legge l'andamento del reparto sicurezza dell'applicativo, in modo da segnalare eventuali manomissioni o compromissioni della cifratura. |
 | **`APIManager`** | Software | `Shipment` | **`MONITOR`** | `shipmentID`, `logicalState` | Consente ai sistemi gestionali esterni (ERP) di interrogare lo stato. |
 | | | `EnvironmentalMeasurement`| **`MONITOR`** | `measuredValue`, `timestamp` | Esporta lo storico dei dati certificati e conformi verso le API integrate. |
 
@@ -42,7 +43,6 @@ In sostanza, devicemanager monitora la batteria. IntegrityVerifier monitora lo s
 
 
 Note:
-1. ha senso che shipmentManager monitori e controlli la stessa variabile dello stato logico della spedizione? Così a naso me par e no, se proprio bisogna rappresentare la creazione della consegna da parte di un cliente bisogna creare una terza variabile.
 2. sul Qrcode ell'esecuzione che fa AppGateway, ha senso? Qrcode non dovrebbe essere (cosi come il codice alfanumerico) un qualcosa di statico (per il prodotto) per cui a parte crearlo (e non abbiamo un agente che lo fa) non viene fatto altro? La visualizzazione se proprio dovrebbe essere fatta dal customer che non abbiamo messo nel sistema.
 3. l'integrity verifier monitora e controlla il crittografore; non so...è corretto? nei goal non lo avevamo messo per controllare i pacchetti lato cloud?
 4. dashboard manager non dovrebbe monitorare anche batteria e integrità pacchetti per creare l'allarme? O facciamo fare i monitoraggi ad altri agenti come abbiamo fatto e poi nei prossimi diagrammi sugli agenti li mettiamo in relazione?

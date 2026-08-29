@@ -1,0 +1,43 @@
+Il Context Diagram rappresenta la dipendenza concettuale delle informazioni alla sorgente, non la topologia di rete o i passaggi intermedi. Non inserire nemmeno variabili statiche che non cambiano nel tempo e auto monitor/control dello stesso agente sulla stessa variabile (dato che rappresentiamo i rapporti tra agenti). Tabellina collegamenti riscontrati:
+
+DeviceManager	Software	IoTDevice	CONTROL	    Istanza di IoTDevice	            Registra e attiva il dispositivo hardware nel sistema (onboarding).     ---> non mi pare nessuno monitori hardwareID
+
+DeviceManager   Software    IoTDevice	MONITOR	    batteryLevel, bleConnectionStatus	                            Rileva lo stato di carica della batteria e la presenza del sensore a backend.   ---> riceve da OnBoardFirmware;
+OnBoardFirmware	Software	IoTDevice	CONTROL	    batteryLevel, availableFlashMemory, bleConnectionStatus	        Aggiorna lo stato di salute interna dell’hardware (diagnostica di bordo).       ---> manda a DeviceManager;
+AppGateway	    Software    IoTDevice   MONITOR	    bleConnectionStatus	                                            Rileva lo stato di connessione BLE attiva con il dispositivo sensore.           ---> riceve da OnBoardFirmware;
+
+ShipmentManager	Software	Shipment	            MONITOR	    logicalState                Ispeziona lo stato corrente del viaggio (nessun controllo diretto sulla creazione per via della Domain Assumption).
+ShipmentManager	Software	Shipment	            CONTROL	    logicalState                Modifica lo stato corrente del viaggio.     ---> non serve inserirlo in quanto auto controllato e monitorato;
+APIManager	    Software	Shipment	            MONITOR	    shipmentID, logicalState	Consente ai sistemi gestionali esterni (ERP) di interrogare lo stato.   ---> riceve da ShipmentManager;
+
+AppGateway	Software	ShippingLabel	    MONITOR	    qrCodePayload, backupAlphanumericCode	  Esegue la scansione dell’etichetta fisica per identificare il viaggio. ---> nessun controllo sul QR e il AlphaCode che sono statico;
+
+ShipmentManager Software    ConfigurationProfile    CONTROL     Istanza di ConfigurationProfile, samplingInterval	Crea e configura il profilo di viaggio associato alla spedizione.
+ShipmentManager Software    ThresholdRule           CONTROL	    metricName, minValue, maxValue	                    Imposta e definisce le soglie di tolleranza fisiche impartite dal manager.
+OnBoardFirmware	Software    ConfigurationProfile	MONITOR	    samplingInterval	                                Legge l’intervallo temporale configurato per determinare la frequenza di polling.
+OnBoardFirmware	Software    ThresholdRule	        MONITOR	    metricName, minValue, maxValue	                    Legge i limiti di soglia impostati per poter eseguire il confronto con i dati campionati.
+---> ShipmentManager controlla samplingInterval, metricName, minValue, maxValue che OnBoardFirmware monitora, quindi freccia tra i due con questi parametri intramezzo;
+
+AppGateway	Software    LocalGatewayBuffer	CONTROL/MONITOR	    pendingPacketsCount, isCloudSynchronized    Gestisce l’accodamento locale dei dati sul telefono e la loro trasmissione asincrona. ---> auto gestione da non riportare;
+
+IntegrityVerifier	Software    IoTDevice	            MONITOR	    publicKey	        Recupera la chiave pubblica memorizzata del sensore per decifrare l’hash. ---> variabile statica da non rappresentare;
+
+SecureElement	    Ambiente    EnvironmentalMeasurement	MONITOR	    measuredValue	                        Legge il dato grezzo campionato prima di firmarlo.                                     ---> riceve da PhysicalTransducer;
+APIManager	        Software    EnvironmentalMeasurement	MONITOR	    measuredValue, timestamp	            Esporta lo storico dei dati certificati e conformi verso le API integrate.             ---> riceve da PhysicalTransducer;
+PhysicalTransducer	Ambiente	EnvironmentalMeasurement	CONTROL     measuredValue, timestamp, metricName	Rileva la grandezza fisica (temperatura, umidità, ecc.) sul campo e genera la misura.  ---> manda a SecureElement, ApiManager;
+
+OnBoardFirmware	    Software    EnvironmentalMeasurement   CONTROL  isOutOfRange                 Esegue il confronto locale e imposta il flag se la misura evade i limiti.
+DashboardManager	Software    EnvironmentalMeasurement   MONITOR  measuredValue, isOutOfRange	 Legge lo storico delle misure e delle anomalie per renderizzarle in tempo reale. ---> fatto freccia da OnBoard a Dashboard con isOutofRange;
+PhysicalTransducer	Ambiente	EnvironmentalMeasurement   CONTROL  measuredValue, timestamp, metricName  Rileva la grandezza fisica (temperatura, umidità, ecc.) sul campo e genera la misura.  ---> freccia da qui a Dashboard con measuredValue;
+
+SecureElement	    Ambiente	CryptographicSignature	CONTROL	    signatureValue, timestamp	Genera la firma crittografica inalterabile sui dati.
+IntegrityVerifier	Software    CryptographicSignature	MONITOR	    signatureValue	            Ispeziona la firma crittografica allegata ai pacchetti in transito nel Cloud. ---> creata freccia da SecureElement a IntegrityVerifier con signatureValue;
+
+DashboardManager	Software    CryptographicSignature  MONITOR     integrityStatus     Legge l'andamento del reparto sicurezza dell'applicativo, in modo da segnalare eventuali manomissioni o compromissioni della cifratura.
+IntegrityVerifier	Software	CryptographicSignature	CONTROL	    integrityStatus	    Valuta l’attendibilità del dato e scrive l’esito della verifica (VALID/TAMPERED).   ---> inserito collegamento da IntegrityVerifier a DashboardMan.;
+
+DashboardManager	Software	AlarmNotification	        CONTROL     alarmType, creationTimestamp, isDismissed	    Genera l’allarme visivo a schermo e permette la presa visione (isDismissed).
+---> la batteria è controllata dal OnBoardFirmware e monitorata dal DeviceManager (non ci interessa per questo diagramma raccontare il viaggio intramezzo fino alla dashboard per l'allarme). Per isOutOfRange, Dashboard monitora direttamente lei, mentre per IntegrityVerifier andiamo ad aggiungere il monitoring da parte della Dashboard; Non c'è nessun agente del nostro sistema che fa MONITOR su questa variabile perché il destinatario del monitoraggio è l'operatore umano (agente d'ambiente esterno al confine del sistema modellato). Abbiamo trattato la lettura dell'allarme da parte dell'operatore come una Domain Assumption
+
+
+
