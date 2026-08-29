@@ -1,0 +1,16 @@
+1. Visualizzazione dati:
+DashboardManager per il goal DashboardAccessibleToActors dipende da AppGateway per il goal AsynchronousDataUploadToCloud.
+La dashboard (Cloud) è vulnerabile rispetto all'applicazione mobile (smartphone) dell'autista che fa l'upload.
+
+2. Approvigionamento dati:
+AppGateway per il goal BLEAutoConnectionAndDownload (L'applicazione mobile Gateway deve connettersi automaticamente via Bluetooth Low Energy (BLE) al sensore non appena si trova entro la portata radio (<10 metri) e scaricare i dati storici accumulati nella memoria flash.) dipende dal goal/assunzione PhysicalParametersSampledBySensor fornito dall'agente OnBoardFirmware.
+Significato: L'applicazione mobile non ha dati da inoltrare se il firmware del sensore a bordo del collo fallisce nel campionare le grandezze fisiche.
+
+3. Sicurezza e crittografia:
+Il goal SecureDataExposedViaAPI di ApiManager dipende da IntegrityVerifier per il goal DataIntegrityVerified che a sua volta dipende da ➔ DataDigitallySignedAtSource fornito da ➔ SecureElement.
+Significato: Il modulo di verifica dell'integrità nel Cloud non può validare l'autenticità delle misure se i dati in arrivo sono compromessi; a sua volta, i dati non possono essere validi se il componente adibito alla criptazione sicura dei dati fallisce nel generare la firma crittografica dei dati.
+
+4. Configurazione viaggio:
+DashboardManager non può soddisfare il goal OutofRangeConditionsHighlighted se DeviceManager fallisce il goal DeviceConfigured.
+Significato: Il sensore fisico non può mostrare eventuali fuori soglia se il device del box spedizione non è stato correttamente configurato nei parametri neccessari.
+
