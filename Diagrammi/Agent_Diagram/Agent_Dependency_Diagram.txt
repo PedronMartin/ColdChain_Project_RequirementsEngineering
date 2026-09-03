@@ -14,3 +14,5 @@ Significato: Il modulo di verifica dell'integrità nel Cloud non può validare l
 DashboardManager non può soddisfare il goal OutofRangeConditionsHighlighted se DeviceManager fallisce il goal DeviceConfigured.
 Significato: Il sensore fisico non può mostrare eventuali fuori soglia se il device del box spedizione non è stato correttamente configurato nei parametri neccessari.
 
+5. Partenza spedizione:
+ShipmentManager non può soddisfare il goal ShipmentsReady finchè AppGateway non ha soddisfatto il goal DeviceAssociatedToShipment (ossia, la spedizione non può partire se non sono stati correttamente associati i dispositivi del viaggio).

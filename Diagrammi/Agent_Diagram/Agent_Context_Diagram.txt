@@ -3,14 +3,17 @@ Il Context Diagram rappresenta la dipendenza concettuale delle informazioni alla
 DeviceManager	Software	IoTDevice	CONTROL	    Istanza di IoTDevice	            Registra e attiva il dispositivo hardware nel sistema (onboarding).     ---> non mi pare nessuno monitori hardwareID
 
 DeviceManager   Software    IoTDevice	MONITOR	    batteryLevel, bleConnectionStatus	                            Rileva lo stato di carica della batteria e la presenza del sensore a backend.   ---> riceve da OnBoardFirmware;
-OnBoardFirmware	Software	IoTDevice	CONTROL	    batteryLevel, availableFlashMemory, bleConnectionStatus	        Aggiorna lo stato di salute interna dell’hardware (diagnostica di bordo).       ---> manda a DeviceManager;
+OnBoardFirmware	Software	IoTDevice	CONTROL	    batteryLevel, BufferMemory, bleConnectionStatus	                Aggiorna lo stato di salute interna dell’hardware (diagnostica di bordo).       ---> manda a DeviceManager;
 AppGateway	    Software    IoTDevice   MONITOR	    bleConnectionStatus	                                            Rileva lo stato di connessione BLE attiva con il dispositivo sensore.           ---> riceve da OnBoardFirmware;
+DashboardManager Software   IoDevice    MONITOR     batteryLevel                                                    Rileva lo stato di carica della batteria per eventuali segnalazioni d'allarme   ---> riceve da OnBoardFirmware;
 
 ShipmentManager	Software	Shipment	            MONITOR	    logicalState                Ispeziona lo stato corrente del viaggio (nessun controllo diretto sulla creazione per via della Domain Assumption).
 ShipmentManager	Software	Shipment	            CONTROL	    logicalState                Modifica lo stato corrente del viaggio.     ---> non serve inserirlo in quanto auto controllato e monitorato;
 APIManager	    Software	Shipment	            MONITOR	    shipmentID, logicalState	Consente ai sistemi gestionali esterni (ERP) di interrogare lo stato.   ---> riceve da ShipmentManager;
 
 AppGateway	Software	ShippingLabel	    MONITOR	    qrCodePayload, backupAlphanumericCode	  Esegue la scansione dell’etichetta fisica per identificare il viaggio. ---> nessun controllo sul QR e il AlphaCode che sono statico;
+AppGateway  Software    Shipment            CONTROL     tracked_by (Instance)                     Crea/Distrugge l’associazione spedizione-IoTDevice alla partenza/termine del viaggio.     ---> manda a ShipmentManager l'istanza dell'associazione tra Shipment e IoTDevice; 
+
 
 ShipmentManager Software    ConfigurationProfile    CONTROL     Istanza di ConfigurationProfile, samplingInterval	Crea e configura il profilo di viaggio associato alla spedizione.
 ShipmentManager Software    ThresholdRule           CONTROL	    metricName, minValue, maxValue	                    Imposta e definisce le soglie di tolleranza fisiche impartite dal manager.
@@ -37,7 +40,6 @@ DashboardManager	Software    CryptographicSignature  MONITOR     integrityStatus
 IntegrityVerifier	Software	CryptographicSignature	CONTROL	    integrityStatus	    Valuta l’attendibilità del dato e scrive l’esito della verifica (VALID/TAMPERED).   ---> inserito collegamento da IntegrityVerifier a DashboardMan.;
 
 DashboardManager	Software	AlarmNotification	        CONTROL     alarmType, creationTimestamp, isDismissed	    Genera l’allarme visivo a schermo e permette la presa visione (isDismissed).
----> la batteria è controllata dal OnBoardFirmware e monitorata dal DeviceManager (non ci interessa per questo diagramma raccontare il viaggio intramezzo fino alla dashboard per l'allarme). Per isOutOfRange, Dashboard monitora direttamente lei, mentre per IntegrityVerifier andiamo ad aggiungere il monitoring da parte della Dashboard; Non c'è nessun agente del nostro sistema che fa MONITOR su questa variabile perché il destinatario del monitoraggio è l'operatore umano (agente d'ambiente esterno al confine del sistema modellato). Abbiamo trattato la lettura dell'allarme da parte dell'operatore come una Domain Assumption
 
 
 

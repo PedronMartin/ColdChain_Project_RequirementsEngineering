@@ -1,0 +1,111 @@
+RAMO A:
+@startuml
+left to right direction
+skinparam shadowing false
+
+actor "ShipmentManager" as SM
+actor "AppGateway" as AG
+
+rectangle "Ramo A: Gestione Ciclo di Vita Spedizione" {
+  usecase "CreateShipment" as UC_CreateShip
+  usecase "DeleteShipment" as UC_DelShip
+  usecase "ViewShipmentHistory" as UC_ViewShip
+  
+  usecase "StartShipment" as UC_Start
+  usecase "PauseShipment" as UC_Pause
+  usecase "ResumeShipment" as UC_Resume
+  usecase "CompleteShipment" as UC_Complete
+}
+
+SM --> UC_CreateShip
+SM --> UC_DelShip
+SM --> UC_ViewShip
+
+AG --> UC_Start
+AG --> UC_Pause
+AG --> UC_Resume
+AG --> UC_Complete
+@enduml
+
+
+
+RAMO B:
+@startuml
+left to right direction
+skinparam shadowing false
+
+actor "PhysicalTransducer" as PT
+actor "OnBoardFirmware" as OBF
+actor "DashboardManager" as DashM
+actor "SecureElement" as SE
+actor "IntegrityVerifier" as IV
+
+rectangle "Ramo B: Tracciamento, Sicurezza & Allarmi" {
+  usecase "Sample Physical Parameters" as UC_Sample
+  usecase "Monitor Battery Level" as UC_Battery
+  usecase "HighlightOutOfRangeCondition" as UC_Highlight
+  usecase "Sign Data Cryptographically" as UC_Sign
+  usecase "Verify Data Integrity" as UC_Verify
+}
+
+PT --> UC_Sample
+OBF --> UC_Battery
+DashM --> UC_Highlight
+SE --> UC_Sign
+IV --> UC_Verify
+@enduml
+
+
+
+RAMO C:
+@startuml
+left to right direction
+skinparam shadowing false
+
+actor "OnBoardFirmware" as OBF
+actor "AppGateway" as AG
+
+rectangle "Ramo C: Gateway & Buffer Locale" {
+  usecase "Buffer Data Locally" as UC_Buffer
+  usecase "AssociateDeviceToShipment" as UC_Assoc
+  usecase "DissociateDeviceFromShipment" as UC_Dissoc
+  usecase "DownloadSensorDataViaBLE" as UC_DL
+  usecase "UploadDataToCloud" as UC_UL
+}
+
+OBF --> UC_Buffer
+AG --> UC_Assoc
+AG --> UC_Dissoc
+AG --> UC_DL
+AG --> UC_UL
+@enduml
+
+
+
+RAMO D:
+@startuml
+left to right direction
+skinparam shadowing false
+
+actor "DeviceManager" as DM
+actor "ShipmentManager" as SM
+
+rectangle "Ramo D Device Management" {
+  usecase "RegisterDevice" as UC_RegDev
+  usecase "DecommissionDevice" as UC_DecomDev
+  usecase "ListDevices" as UC_ListDev
+  
+  usecase "CreateConfigurationProfile" as UC_CreateConf
+  usecase "AddThresholdRuleToProfile" as UC_AddThresh
+}
+
+DM --> UC_RegDev
+DM --> UC_DecomDev
+DM --> UC_ListDev
+
+SM --> UC_CreateConf
+SM --> UC_AddThresh
+@enduml
+
+
+

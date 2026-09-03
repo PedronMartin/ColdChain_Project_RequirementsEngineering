@@ -1,0 +1,68 @@
+Formalmente, un'operazione produce una transizione di stato ed è definita come una relazione binaria tra uno stato di input (gli oggetti a cui l'operazione si applica) e uno stato di output (gli oggetti che l'operazione va a modificare).
+
+Ogni singola operazione che andremo a definire deve seguire questo schema preciso [Riassunto requisiti.pdf]:
+
+    Signature (Firma): Dichiara gli Input (i dati che l'operazione legge) e gli Output (i dati che l'operazione scrive/modifica), referenziando esclusivamente le classi e gli attributi del vostro Class Diagram v3 [12.3, 12.3.2].
+    DomPre (Pre-condizione di Dominio): Una condizione descrittiva (fisica) che deve essere vera nel mondo affinché l'operazione possa esistere (es. la spedizione è in stato CREATED) [Riassunto requisiti.pdf].
+    DomPost (Post-condizione di Dominio): L'effetto fisico o logico immediato dell'azione (es. la spedizione è in stato IN_TRANSIT) [Riassunto requisiti.pdf].
+    ReqPre (Pre-condizione Richiesta): Un vincolo prescrittivo di sicurezza. Agisce come un permesso: l'operazione può essere eseguita solo se questa condizione è vera [12.4.1].
+    ReqTrig (Condizione di Innesco): Un vincolo prescrittivo di obbligo. Agisce come un trigger: l'operazione deve essere eseguita non appena questa condizione diventa vera [12.4.1].
+    ReqPost (Post-condizione Richiesta): Regole aggiuntive sull'output per garantire requisiti non funzionali o di qualità [12.4.1].
+    Performer (Esecutore): L'unico agente responsabile di eseguire l'azione [12.3.2]. Regola di coerenza inter-vista di Objectiver (Rule 3): L'agente esecutore di un'operazione deve coincidere rigorosamente con l'agente a cui avete assegnato la responsabilità del relativo Goal foglia nell'Agent Diagram [Riassunto requisiti.pdf]!
+
+
+
+Elenco goal foglia, requisiti foglia, excpectation foglia:
+    1. DeviceProvisionedAndDecommissioned - requirements. I dispositivi IoT devono poter essere registrati (provisioned) all'interno del sistema con il loro identificativo univoco e successivamente dismessi (decommissioned) dal database quando non più utilizzabili. Agente: DeviceManager;
+
+    2. DeviceConfigured - requirements. Il sistema deve consentire la configurazione remota dei parametri di campionamento dei dispositivi IoT, incluse le frequenze di lettura e le grandezze fisiche specifiche da monitorare. Agente: ShipmentManager;
+
+    3. DeviceListed -requirements. Il sistema deve mantenere e mostrare un elenco sempre aggiornato di tutti i dispositivi IoT registrati, con i relativi stati operativi e diagnostici. Agente: DeviceManager;
+
+    4. DeviceAssociatedToShipment - requirements. Il dispositivo IoT deve poter essere associato a una specifica spedizione (e dissociato al termine di essa) per accoppiare le misurazioni fisiche e la frequenza di campionamento al rispettivo lotto di merce fragile. Agente: AppGateway;
+
+    5. ShipmentsReady - requirements. Il sistema deve consentire la gestione completa del ciclo di vita delle spedizioni (creazione, visualizzazione dello storico, cancellazione logica). Agente: ShipmentManager;
+
+    20. StatusShipmentsManagement - requirements. Il sistema deve consentire la gestione delle transizioni tra i relativi stati logici di viaggio (start, stop, pause, resume). Agente: AppGatewat;
+
+    6. BatteryLevelTransmittedBySensor - Expectation. Il firmware del dispositivo deve acquisire periodicamente lo stato di carica della propria batteria interna e allegarlo come metadato a ogni pacchetto di trasmissione BLE. Agente: OnBoardFirmware;
+
+    7. LowBatteryNotified - requirements. Il sistema cloud deve monitorare lo stato di carica ricevuto e inviare una notifica o un allarme visivo qualora il livello della batteria del dispositivo scenda sotto la soglia del 15%. Agente: DashboardManager;
+
+    8. DataBufferedLocallyIfNoBLE - expectation. In assenza di connessione Bluetooth attiva con il gateway mobile, le misurazioni campionate devono essere memorizzate temporaneamente all'interno della memoria flash locale per evitare qualsiasi perdita di dati. Agente:OnBoardFirmware;
+
+    9. DataDigitallySignedAtSource - expectation. Ogni misurazione deve essere firmata crittograficamente all'origine tramite algoritmo asimmetrico e chiave privata salvata sul chip sicuro prima di essere trasmessa all'esterno. Agente: SecureElement;
+
+    10. PhysicalParametersSampledBySensor - expectation. Il dispositivo sensore deve eseguire la lettura periodica dei sensori fisici delle grandezze richieste secondo la frequenza programmata. Agente: PhysicalTransducer;
+
+    11. DataIntegrityCheck - requirements. Il sistema deve verificare la firma crittografica di ciascun pacchetto dati ricevuto usando la chiave pubblica del sensore associato per impostare una flag di allarme in caso di problemi. Agente: IntegrityVerifier;
+
+    12. InvalidIntegrityNotified - requirements. Il sistema deve rivelare e segnalare immediatamente eventuali anomalie in caso di firma non valida. Agente: DashboardManager.
+
+    14. AsynchronousDataUploadToCloud - requirements. L'applicazione mobile Gateway deve inoltrare in modo sicuro e asincrono i pacchetti dati scaricati dal sensore verso il Cloud SaaS non appena è disponibile la connettività di rete (4G/5G o WIFI). Agente: AppGateway;
+
+    15. BLEAutoConnectionAndDownload - requirements. L'applicazione mobile Gateway deve connettersi automaticamente via Bluetooth Low Energy (BLE) al sensore non appena si trova entro la portata radio (<10 metri) e scaricare i dati storici accumulati nella memoria flash. Agente: AppGateway;
+
+    16. DashboardAccessibleToActors - requirements. Il sistema deve mettere a disposizione una dashboard web profilata per consentire la visualizzazione e l'ispezione dello storico dei parametri fisici di viaggio a manager, autisti, consumatori e enti di certificazione. Agente: DashboardManager;
+
+    17. OutofRangeContitionHighlighned - requirements. La dashboard web deve evidenziare in modo visivamente chiaro e immediato (es. marcatori grafici rossi o alert) tutti i campionamenti fisici che hanno evaso le soglie di tolleranza impostate per la spedizione. Agente DashboardManager;
+
+    18. DashboardAccessibleViaCode - requirements. Il sistema deve consentire l'accesso ai dati della spedizione tramite l'inserimento manuale su pagina web del codice identificativo alfanumerico stampato in chiaro sotto il QR Code. Agente: APIManager;
+
+    19. SecureDataExposedViaAPI - requirements. Il sistema deve esporre interfacce API REST sicure per consentire l'esportazione automatizzata e l'ispezione dei dati storici di spedizione e delle relative firme di conformità da parte di sistemi informatici esterni ed enti terzi. Agente: APIManager.
+
+    13. Avoid [UnauthorizedDataModification] - requirements. Il backend Cloud non deve consentire ad alcun utente o attore di modificare o eliminare i record storici di memorizzati. Agente: ShipmentManager;
+
+
+
+
+
+
+
+
+
+
+
+
+
+

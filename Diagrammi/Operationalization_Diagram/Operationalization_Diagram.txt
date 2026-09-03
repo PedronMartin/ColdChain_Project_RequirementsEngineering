@@ -1,0 +1,304 @@
+1. Goal DeviceProvisionedAndDecommissioned: lo operazionalizziamo in due operazioni diversi.
+    - RegisterDevice:
+        -- Definizione: Registra un nuovo dispositivo IoT nel database del sistema, rendendolo disponibile per future spedizioni;
+        -- Agente: DeviceManager (Software Agent);
+        -- Firma (Signature):
+            --- Input: hardwareID: String, publicKey: String;
+            --- Output: d: IoTDevice / {hardwareID, batteryLevel, BufferMemory, BLEConnectionStatus, publicKey};
+        -- DomPre (Pre-condizione di dominio): not (exists x: IoTDevice | x.hardwareID = hardwareID) (Non esiste ancora nessuna istanza di IoTDevice con quell'ID);
+        -- DomPost (Post-condizione di dominio): (exists d: IoTDevice | d.hardwareID = hardwareID AND d.publicKey = publicKey) (Ora esiste una nuova istanza d di IoTDevice con quell'ID);
+        -- ReqPre (Pre-condizione richiesta - Vincolo di sicurezza): l'ID e la publicKey forniti in input devono rispettare la formattazione alfanumerica standard prevista;
+        -- ReqPost (Post-condizione richiesta - Obbligo di inizializzazione): vengono inizializzate tutte le variabili dell'istanza IoTDevice inserita a sistema;
+            --- Formalizzazione: d.batteryLevel = 100% AND d.BufferMemory = MaxCapacity AND d.BLEConnectionStatus = False AND.
+    - DecommissionDevice:
+        -- Definizione: Rimuove definitivamente un dispositivo IoT dal sistema quando è obsoleto o danneggiato;
+        -- Agente: DeviceManager (Software Agent);
+        -- Firma (Signature):
+            --- Input: d: IoTDevice;
+            --- Output: none;
+        -- DomPre (Pre-condizione di dominio): Esiste a sistema l'istanza d: IoTDevice;
+        -- DomPost (Post-condizione di dominio): L'istanza d non esiste più a sistema;
+        -- ReqPre (Pre-condizione Richiesta - Vincolo di sicurezza fondamentale): Il dispositivo non deve essere attualmente associato a nessuna spedizione attiva;
+            --- Formalizzazione: not (exists s: Shipment | s.tracked_by = d and (s.logicalState = IN_TRANSIT OR s.logicalState = PAUSED)) (Questo impedisce di dismettere per errore un sensore che sta viaggiando e raccogliendo dati).
+
+2. Goal DeviceConfigured: lo operazionalizziamo in due operazioni.
+    -  CreateConfigurationProfile:
+        -- Definizione: Crea a sistema il profilo di configurazione iniziale per la spedizione, definendo la frequenza di campionamento;
+        -- Agente (Performer): ShipmentManager;
+        -- Firma (Signature):
+            --- Input: s: Shipment, ProfileID: String, samplingInterval: Integer;
+            --- Output: cp: ConfigurationProfile / {ProfileID, samplingInterval}, defined_by: Association;
+        -- DomPre: s.logicalState = CREATED AND not (exists x: ConfigurationProfile | x.ProfileID = ProfileID);
+        -- DomPost: exists cp: ConfigurationProfile | cp.ProfileID = ProfileID AND cp.samplingInterval = samplingInterval AND s.defined_by = cp.
+    - AddThresholdRuleToProfile (Eseguibile N volte):
+        -- Definizione: Crea una specifica regola di soglia per una grandezza fisica (es. Temperatura) e la associa al profilo di configurazione della spedizione;
+        -- Agente (Performer): ShipmentManager;
+        -- Firma (Signature):
+            --- Input: cp: ConfigurationProfile, metricName: String, minValue: Integer, maxValue: Integer;
+            --- Output: tr: ThresholdRule / {metricName, minValue, maxValue}, contains: Association;
+        -- DomPre (Pre-condizione di dominio): not (exists r: ThresholdRule | r.metricName = metricName AND cp.contains = r)
+            --- Significato: Impedisce di inserire due regole duplicate per la stessa identica metrica (es. due regole diverse per la temperatura nello stesso profilo).
+        -- DomPost (Post-condizione di dominio): exists tr: ThresholdRule | tr.metricName = metricName AND tr.minValue = minValue AND tr.maxValue = maxValue AND cp.contains = tr;
+            --- Significato: Viene creata l'istanza della regola con i valori di soglia inseriti e viene istanziata l'associazione contains tra il profilo e la nuova regola.
+        -- ReqPre (Vincolo di Sicurezza): minValue < maxValue;
+            --- (La soglia minima deve essere logicamente inferiore alla soglia massima).
+
+3. Goal DeviceListed: lo operalizziamo in una sola operazione.
+    - ListDevices:
+        -- Definizione: Interroga il database centrale ed estrae l'elenco completo di tutti i dispositivi IoT registrati a sistema, mostrando all'operatore il loro identificativo e il loro stato diagnostico aggiornato (carica della batteria, memoria disponibile e stato di connessione);
+        -- Agente (Performer): DeviceManager (Software Agent);
+        -- Firma (Signature):
+            --- Input: allDevices: Set(IoTDevice) (l'insieme di tutti i dispositivi a sistema);
+            --- Output: displayedList: Set(IoTDevice / {hardwareID, batteryLevel, BufferMemory, BLEConnectionStatus, publicKey});
+        -- DomPre (Pre-condizione di dominio): exists d: IoTDevice (deve esistere almeno un dispositivo registrato nel sistema per poter popolare la lista);
+        -- DomPost (Post-condizione di dominio): displayedList = allDevices (l'elenco mostrato a schermo corrisponde esattamente e fedelmente all'insieme dei dispositivi effettivamente registrati nel database);
+        -- ReqPre (Pre-condizione richiesta - Vincolo di sicurezza): L'utente che richiede la visualizzazione deve essere autenticato a sistema con un profilo autorizzato (es. operatore di logistica o amministratore di sistema);
+        -- ReqPost (Post-condizione richiesta - Vincolo di accuratezza):
+            --- forall d: IoTDevice | (d in displayedList) implies (d.batteryLevel = d.batteryLevel_at_db AND d.BufferMemory = d.BufferMemory_at_db AND d.BLEConnectionStatus = d.BLEConnectionStatus_at_db AND d.publicKey = d.publicKey_at_db);
+            --- Il sistema garantisce che i dati operativi mostrati a schermo rispecchino fedelmente e in tempo reale gli ultimi dati diagnostici memorizzati nel database, senza alterazioni o ritardi bloccanti.
+
+4. Goal DeviceAssociatedToShipment: lo operazionaliziamo in due operazioni.
+    - AssociateDeviceToShipment:
+        -- Definizione: Crea il legame logico (tracked_by) tra il sensore fisico IoTDevice e la spedizione Shipment prima della partenza dell'autista, accoppiando in modo univoco il flusso di telemetrie al lotto di merce fragile;
+        -- Agente (Performer): AppGateway (Software Agent);
+        -- Firma (Signature):
+            --- Input: s: Shipment, d: IoTDevice;
+            --- Output: tracked_by: Association (istanziazione fisica del link tra le due classi);
+        -- DomPre (Pre-condizione di dominio): s.logicalState = CREATED AND not (exists x: Shipment | x.tracked_by = d AND (x.logicalState = IN_TRANSIT OR x.logicalState = PAUSED));
+            --- (La spedizione s deve essere ancora nello stato iniziale creata (CREATED). Inoltre, il sensore d selezionato non deve essere attualmente impegnato a tracciare un altro viaggio attivo (in stato IN_TRANSIT o PAUSED);
+        -- DomPost (Post-condizione di dominio): s.tracked_by = d (Al termine dell'operazione, la spedizione risulta ufficialmente associata al dispositivo IoT per la cattura dei dati ambientali);
+        -- ReqPre (Pre-condizione richiesta - Vincolo di sicurezza e diagnostica): d.batteryLevel > 15% AND d.BLEConnectionStatus = True (App Gateway impedisce l'associazione se il livello di batteria del sensore è inferiore al 15% o se l'operatore non ha ancora stabilito una connessione Bluetooth attiva con il dispositivo sul campo);
+    - DissociateDeviceFromShipment:
+        -- Definizione: Rimuove il legame logico (tracked_by) tra il dispositivo IoTDevice e la spedizione Shipment al momento dell'arrivo a destinazione, liberando il sensore per viaggi futuri;
+        -- Agente (Performer): AppGateway (Software Agent);
+        -- Firma (Signature):
+            -- Input: s: Shipment, d: IoTDevice;
+            -- Output: tracked_by: Association / {distruzione} (cancellazione logica del link);
+            -- DomPre (Pre-condizione di dominio): s.tracked_by = d AND s.logicalState = COMPLETED (Il sensore deve essere attualmente associato a quella spedizione e il viaggio deve essere giunto nello stato finale concluso (COMPLETED));
+            -- DomPost (Post-condizione di dominio): not (s.tracked_by = d) (Il legame di tracciamento viene distrutto a database, svincolando il dispositivo che torna disponibile per nuove associazioni);
+            -- ReqPre (Pre-condizione richiesta - Vincolo di integrità dati): exists b: LocalGatewayBuffer | b.isCloudSynchronized = True (App mobile vieta la dissociazione del sensore se ci sono ancora pacchetti di misurazioni ambientali memorizzati localmente nel buffer del telefono che non sono stati sincronizzati ed caricati sul Cloud centrale. Questo garantisce che nessun dato registrato nell'ultima tratta vada perso.
+
+
+5. Goal ShipmentReady: lo operazionalizziamo in 3 operazioni.
+    - CreateShipment:
+        -- Definizione: Registra a sistema una nuova spedizione (rilevandola dal sistema ERP esterno/immissione Manager manuale secondo la Domain Assumption), impostando lo stato logico iniziale a CREATED e creando l'istanza Shipment.
+        -- Agente (Performer): ShipmentManager (Software Agent);
+        -- Firma (Signature):
+            --- Input: id: String;
+            --- Output: s: Shipment / {shipmentID, logicalState};
+        -- DomPre (Pre-condizione di dominio): not (exists x: Shipment | x.shipmentID = id) (Non deve già esistere nel database una spedizione con lo stesso identificativo);
+        -- DomPost (Post-condizione di dominio): exists s: Shipment | s.shipmentID = id AND s.logicalState = CREATED (La spedizione viene istanziata a sistema, attiva e in stato di preparazione);
+    - DeleteShipment:
+        -- Definizione: Contrassegna una spedizione come cancellata logicamente a sistema, impedendone l'errato completamento ma conservando l'istanza a database per scopi di auditing storico;
+        -- Agente (Performer): ShipmentManager (Software Agent);
+        -- Firma (Signature):
+            --- Input: s: Shipment;
+            --- Output: s: s.logicalState = CANCELLED;
+        -- DomPre (Pre-condizione di dominio): s.logicalState = CREATED OR s.logicalState = IN_TRANSIT (Una spedizione può essere cancellata solo se non ancora completata).
+        -- DomPost (Post-condizione di dominio): s.logicalState = CANCELLED;
+    - ViewShipmentHistory:
+        -- Definizione: Estrae e visualizza l'intero storico delle misurazioni ambientali certificate raccolte durante il transito della spedizione.
+        --Agente (Performer): ShipmentManager (Software Agent);
+        -- Firma (Signature):
+            --- Input: s: Shipment;
+            --- Output: m: displayedHistory: Set(EnvironmentalMeasurement);
+        -- DomPre (Pre-condizione di dominio): s.logicalState = COMPLETED OR s.logicalState = IN_TRANSIT OR s.logicalState = CANCELLED (Lo storico può essere visualizzato sia durante il viaggio sia a viaggio concluso, anche se negativamente);
+        -- DomPost (Post-condizione di dominio): displayedHistory = { m: EnvironmentalMeasurement | exists d: IoTDevice | s.tracked_by = d AND d.samples = m } (Il report mostrato a schermo contiene tutte e sole le misurazioni ambientali m campionate dal sensore d che è (o è stato) associato alla spedizione s tramite la relazione tracked_by;
+
+20. StatusShipmentsManagement: lo operazionalizziamo in 4 operazioni.
+    - StartShipment:
+        -- Definizione: Avvia ufficialmente la spedizione e il tracciamento in tempo reale, portando lo stato logico del viaggio a IN_TRANSIT;
+        -- Agente (Performer): AppGateway (Software Agent);
+        -- Firma (Signature):
+            --- Input: s: Shipment, d: IoTDevice;
+            --- Output: s: Shipment / s.logicalState = IN_TRANSIT;
+        -- DomPre (Pre-condizione di dominio): s.logicalState = CREATED AND s.tracked_by = d (La spedizione deve essere nello stato iniziale e deve avere un sensore IoT correttamente associato);
+        -- DomPost (Post-condizione di dominio): s.logicalState = IN_TRANSIT;
+        -- ReqPre (Pre-condizione richiesta - Vincolo di sicurezza): d.batteryLevel > 15% AND d.BLEConnectionStatus = True (Il viaggio può essere avviato a sistema solo se il sensore ha una carica della batteria superiore al 15% e se l'operatore ha stabilito con successo una connessione BLE attiva per trasmettere lo "stato zero" della merce);
+    - PauseShipment:
+        -- Definizione: Sospende temporaneamente lo stato attivo del viaggio (es. durante le soste notturne dell'autista o durante i periodi di stoccaggio temporaneo in hub intermedi);
+        -- Agente (Performer): AppGateway (Software Agent);
+        -- Firma (Signature):
+            --- Input: s: Shipment;
+            --- Output: s: Shipment / s.logicalState = PAUSED;
+        -- DomPre (Pre-condizione di dominio): s.logicalState = IN_TRANSIT;
+        -- DomPost (Post-condizione di dominio): s.logicalState = PAUSED;
+    - ResumeShipment:
+        -- Definizione: Ripristina lo stato attivo del viaggio dopo una pausa programmata, riportando la spedizione in transito;
+        -- Agente (Performer): AppGateway (Software Agent);
+        -- Firma (Signature):
+            --- Input: s: Shipment;
+            --- Output: s: Shipment / s.logicalState = IN_TRANSIT;
+        -- DomPre (Pre-condizione di dominio): s.logicalState = PAUSED;
+        -- DomPost (Post-condizione di dominio): s.logicalState = IN_TRANSIT;
+    -CompleteShipment:
+        -- Definizione: Conclude definitivamente il viaggio all'arrivo a destinazione, congelando lo stato della spedizione su COMPLETED.
+        -- Agente (Performer): AppGateway (Software Agent);
+        -- Firma (Signature):
+            --- Input: s: Shipment, d: IoTDevice;
+            --- Output: s: Shipment / s.logicalState = COMPLETED;
+        -- DomPre (Pre-condizione di dominio): (s.logicalState = IN_TRANSIT OR s.logicalState = PAUSED) AND s.tracked_by = d;
+        -- DomPost (Post-condizione di dominio): s.logicalState = COMPLETED;
+        -- ReqPre (Pre-condizione richiesta - Vincolo di integrità dati): exists b: LocalGatewayBuffer | b.isCloudSynchronized = True (Il manager non può chiudere e completare formalmente la spedizione a sistema se ci sono ancora dati telemetrici nel buffer locale dello smartphone dell'autista o del magazziniere di fine filiera che non sono stati completamente caricati sul Cloud;
+
+6. Goal BatteryLevelTransmittedBySensor: lo operazionalizziamo in un'operazione sola.
+    -AcquireAndTransmitBatteryLevel
+        -- Definizione: Il firmware di bordo del sensore interroga periodicamente l'hardware di diagnostica per rilevare lo stato di carica fisica della cella al litio e aggiorna l'attributo digitale batteryLevel del dispositivo, inserendolo come metadato in tutti i pacchetti dati trasmessi via radio tramite protocollo Bluetooth Low Energy (BLE);
+        -- Agente (Performer): OnBoardFirmware (Environment/Physical Agent);
+        -- Firma (Signature):
+            --- Input: d: IoTDevice, val: Integer (la carica reale misurata dai componenti fisici)
+            --- Output: d: IoTDevice / {batteryLevel} (la variabile digitale esposta sull'interfaccia di trasmissione);
+        -- DomPre (Pre-condizione di dominio): d.batteryLevel != actualPhysicalCharge; (Il livello di batteria attualmente esposto a sistema non rispecchia l'effettivo stato chimico/elettrico attuale della batteria del sensore);
+        -- DomPost (Post-condizione di dominio): d.batteryLevel = actualPhysicalCharge (Al termine dell'operazione, la variabile digitale batteryLevel del dispositivo viene aggiornata con l'ultimo valore fisico misurato dal firmware, rendendola pronta per essere letta dai gateway BLE circostanti);
+        -- ReqPost (Post-condizione richiesta - Vincolo di accuratezza): d.batteryLevel >= 0 AND d.batteryLevel <= 100 (Il firmware garantisce che il valore convertito e trasmesso sia normalizzato su una scala percentuale intera standard (tra 0 e 100), escludendo letture spurie o errate generate da sbalzi di tensione temporanei);
+        -- ReqTrig (Trigger richiesto - temporizzazione periodica): Ogni intervallo di campionamento configurato (es. ogni 60 secondi) o in concomitanza con la trasmissione di ciascuna misurazione ambientale sul canale BLE.
+
+7. Goal LowBatteryNotified: operalizziamo in un'operazione sola.
+    - GenerateLowBatteryAlarm:
+        -- Definizione: L'applicazione di monitoraggio della dashboard Cloud rileva che il livello della batteria del sensore è sceso sotto la soglia del 15% e istanzia a schermo (e nel database) un allarme visivo di tipo LOW_BATTERY legato alla spedizione in corso;
+        -- Agente (Performer): DashboardManager (Software Agent);
+        -- Firma (Signature):
+            --- Input: d: IoTDevice, s: Shipment;
+            --- Output: a: AlarmNotification / {generates} (indica la creazione di un'istanza di allarme legata alla spedizione);
+        -- DomPre (Pre-condizione di dominio): tracked_by(s, d) AND d.batteryLevel < 15% (Il dispositivo d deve essere attualmente associato alla spedizione attiva s e il livello della sua batteria deve essere inferiore a 15);
+        -- DomPost (Post-condizione di dominio): exists a: AlarmNotification | generates(s, a) AND a.Alarm = LOW_BATTERY (Al termine dell'operazione, esiste un allarme a di tipo LOW_BATTERY collegato alla spedizione s tramite la relazione generates);
+        -- ReqTrig (Trigger richiesto): tracked_by(s, d) AND d.batteryLevel < 15% AND not (exists a: AlarmNotification | generates(s, a) AND a.Alarm = LOW_BATTERY) (L'operazione viene innescata automaticamente dal Cloud non appena il livello scende sotto 15%, ma solo se non esiste già un allarme per la batteria scarica associato a quella specifica spedizione s);
+
+
+8. Goal DataBufferedLocallyIfNoBLE: solo una operazione.
+    - BufferMeasurementLocally:
+        -- Definizione: In assenza di una connessione Bluetooth attiva con lo smartphone dell'autista (Gateway), l'OnBoardFirmware del sensore salva temporaneamente la misurazione ambientale appena campionata all'interno della propria memoria flash locale (buffer);
+        -- Agente (Performer): OnBoardFirmware (Environment Agent);
+        -- Firma (Signature):
+            --- Input: d: IoTDevice, m: EnvironmentalMeasurement;
+            --- Output: d: null;
+        -- DomPre (Pre-condizione di dominio): not samples(d, m) (La misurazione m appena rilevata dai trasduttori non è ancora stata registrata in modo persistente nella memoria del dispositivo d.
+        -- DomPost (Post-condizione di dominio): samples(d, m) (Al termine dell'operazione, la misurazione risulta salvata localmente sul dispositivo.)
+        -- ReqPre (Pre-condizione richiesta - Vincolo di assenza BLE): d.BLEConnectionStatus = False (L'archiviazione locale scatta come comportamento d'emergenza solo se la connessione Bluetooth con il gateway è interrotta);
+        -- ReqPost: i dati sono correttamente salvati nel buffer temporaneo, in attesa del ripristino della connessione;
+
+
+NB: controllare esista assunzione su sufficiente memoria Buffer per coprire gli intervalli (pochi, se con assunzione sul corretto comportamento umano) in cui la connessione BLE non è presente e attiva al trasporto dati.
+
+9. Goal DataDigitallySignedAtSource: solo una operazione.
+    - SignMeasurement
+        -- Definizione: Non appena il trasduttore fisico genera una nuova misurazione, il chip crittografico di sicurezza hardware (SecureElement) ne calcola l'hash, lo firma cifrandolo con la propria chiave privata interna e genera un'istanza di CryptographicSignature associandola indissolubilmente alla misurazione;
+        -- Agente (Performer): SecureElement (Environment Agent);
+        -- Firma (Signature):
+            --- Input: m: EnvironmentalMeasurement;
+            --- Output: c: CryptographicSignature / {signatureValue, integrityStatus}, secured_by: Association (istanziazione fisica del link di sicurezza tra misura e firma)
+        -- DomPre (Pre-condizione di dominio): not (exists x: CryptographicSignature | secured_by(m, x)) (La misurazione ambientale m è stata appena acquisita ma non è ancora stata protetta con alcuna firma crittografica);
+        -- DomPost (Post-condizione di dominio): exists c: CryptographicSignature | secured_by(m, c) AND c.signatureValue = crypt_sign(m) AND c.integrityStatus = VALID (Al termine dell'operazione, esiste un'istanza di firma c collegata alla misurazione m tramite la relazione secured_by. Il campo signatureValue contiene l'hash crittografato e lo stato di integrità iniziale della firma è impostato sul valore enumerato VALID);
+        -- ReqTrig (Trigger richiesto - Automatismo hardware): exists m: EnvironmentalMeasurement | not (exists x: CryptographicSignature | secured_by(m, x)) (L'operazione viene innescata istantaneamente in hardware non appena viene rilevata una nuova misurazione priva di firma. Questo garantisce che nessun dato grezzo possa uscire dal sensore senza essere stato precedentemente sigillato);
+
+10. Goal PhysicalParametersSampledBySensor: solo una operazione.
+    - SamplePhysicalParameter:
+        -- Definizione: Il trasduttore fisico (sensore hardware), su comando del firmware di bordo, rileva la grandezza fisica richiesta dall'ambiente (temperatura, umidità o vibrazioni), converte il segnale analogico in digitale e genera l'istanza EnvironmentalMeasurement collegandola all'IoTDevice;
+        -- Agente (Performer): PhysicalTransducer (Environment Agent);
+        -- Firma (Signature):
+            --- Input: d: IoTDevice, val: Integer, metric: String (dove val e metric rappresentano il valore letto e il tipo di grandezza rilevata sul campo);
+            --- Output: m: EnvironmentalMeasurement / {measuredValue, TimeStamp, metricName}, samples: Association (creazione della misura e del link logico con il sensore);
+        -- DomPre (Pre-condizione di dominio): not (exists x: EnvironmentalMeasurement | samples(d, x) AND x.TimeStamp = current_time() AND x.metricName = metric) (All'istante temporale corrente non deve ancora esistere a database una misurazione della stessa tipologia di metrica registrata da questo specifico dispositivo;
+        -- DomPost (Post-condizione di dominio): exists m: EnvironmentalMeasurement | samples(d, m) AND m.measuredValue = val AND m.metricName = metric AND m.TimeStamp = current_time() (Al termine dell'operazione, esiste una nuova istanza di misurazione m collegata al dispositivo d tramite l'associazione samples. I campi della misurazione sono valorizzati con i dati appena acquisiti dall'ambiente);
+        -- ReqTrig (Trigger richiesto - La temporizzazione programmata): Occurs(SamplingRequest) (L'operazione di lettura fisica viene innescata istantaneamente solo quando l'agente OnBoardFirmware (che monitora il samplingInterval) invia il segnale/comando hardware di lettura al trasduttore. Consideriamo questa attività come un evento e non una variabile permanente di stato/classe);
+
+11. Goal DataIntegrityCheck: una operazione.
+    - VerifyDataIntegrity:
+        -- Definizione: L'IntegrityVerifier intercetta ogni pacchetto dati telemetrico non appena giunge sul Cloud. Recupera la chiave pubblica del dispositivo (d.publicKey) dal database, estrae la firma crittografica (c.signatureValue) allegata alla misurazione ed esegue la verifica matematica dell'algoritmo asimmetrico, salvando lo stato dell'integrità (VALID o INVALID) direttamente a sistema;
+        -- Agente (Performer): IntegrityVerifier (Software Agent);
+        -- Firma (Signature):
+            --- Input: d: IoTDevice, m: EnvironmentalMeasurement, c: CryptographicSignature;
+            --- Output: c: CryptographicSignature / {integrityStatus} (l'agente ha il CONTROL esclusivo su questo attributo nel Capabilities Diagram);
+        -- DomPre (Pre-condizione di dominio): samples(d, m) AND secured_by(m, c) (La misurazione m deve essere associata al sensore d ed essere protetta dalla firma crittografica c);
+        -- DomPost (Post-condizione di dominio): (verify_signature(c.signatureValue, d.publicKey, m) => c.integrityStatus = VALID) AND (not verify_signature(c.signatureValue, d.publicKey, m) => c.integrityStatus = INVALID) (Se la funzione matematica di verifica della firma asimmetrica dà esito positivo, l'attributo integrityStatus della firma viene impostato su VALID. Se la firma non corrisponde (indicando una manomissione o corruzione), viene impostato su INVALID);
+        -- ReqTrig (Trigger richiesto): Occurs(DataPacketReceived(m)) (L'operazione viene innescata in automatico a livello server non appena si verifica l'evento di ricezione di un nuovo pacchetto dati telemetrico m);
+
+12. Goal InvalidIntegrityNotified: una operazione sola.
+    - GenerateIntegrityViolationAlarm:
+        -- Definizione: L'applicazione di monitoraggio della Dashboard rileva che un pacchetto dati salvato a sistema presenta una firma crittografica con stato di validità compromesso (INVALID) e istanzia immediatamente un allarme visivo critico di tipo INTEGRITY_VIOLATION associato alla spedizione attiva;
+        -- Agente (Performer): DashboardManager (Software Agent);
+        -- Firma (Signature):
+            --- Input: s: Shipment, d: IoTDevice, m: EnvironmentalMeasurement, c: CryptographicSignature (il modulo legge lo stato di viaggio e le relative misure);
+            --- Output: a: AlarmNotification / {generates} (crea l'allarme collegandolo alla spedizione);
+        -- DomPre (Pre-condizione di dominio): tracked_by(s, d) AND samples(d, m) AND secured_by(m, c) AND c.integrityStatus = INVALID (Il dispositivo d sta tracciando la spedizione attiva s e la firma c della misura m è stata marchiata come compromessa (INVALID));
+        -- DomPost (Post-condizione di dominio): exists a: AlarmNotification | generates(s, a) AND a.Alarm = INTEGRITY_VIOLATION (Al termine dell'operazione, viene creata fisicamente un'istanza di allarme a di tipo INTEGRITY_VIOLATION legata alla spedizione s tramite la relazione generates);
+        -- ReqTrig (Trigger richiesto): tracked_by(s, d) AND samples(d, m) AND secured_by(m, c) AND c.integrityStatus = INVALID AND not (exists a: AlarmNotification | generates(s, a) AND a.Alarm = INTEGRITY_VIOLATION) (L'allarme scatta in automatico non appena lo stato INVALID viene registrato nel database Cloud, a patto che non sia già stato generato un allarme identico in precedenza per quella stessa spedizione (evitando la duplicazione asfissiante degli alert a schermo).
+
+13. Goal AsynchronousDataUploadToCloud: una operazione sola.
+    - UploadDataToCloud:
+        -- Definizione: L'applicazione mobile Gateway trasmette in modo asincrono i pacchetti dati accumulati nel buffer locale verso il Cloud SaaS, svuotando il buffer non appena rileva la presenza di connettività internet attiva (rete cellulare o Wi-Fi);
+        -- Agente (Performer): AppGateway (Software Agent);
+        -- Firma (Signature): 
+            --- Input: b: LocalGatewayBuffer;
+            --- Output: b: LocalGatewayBuffer / {pendingPacketCount, isCloudSynchronized, pendingPacket};
+        -- DomPre (Pre-condizione di dominio): b.pendingPacketCount > 0 AND b.pendingPacket != "" (Ci sono pacchetti nel buffer locale non ancora caricati sul cloud);
+        -- DomPost (Post-condizione di dominio): b.isCloudSynchronized = True AND b.pendingPacketCount = 0 AND b.pendingPacket = "" (I dati sono stati trasmessi con successo, marcando il buffer come sincronizzato e azzerando i pacchetti pendenti, sia come conteggio che come payload effettivo);
+        -- ReqPre (Pre-condizione richiesta - Connettività di rete): internetConnectionStatus = True (L'operazione può essere eseguita solo se lo smartphone ha connettività di rete cellulare o Wi-Fi attiva);
+        -- ReqTrig (Trigger richiesto - Invio automatico): internetConnectionStatus = True AND b.pendingPacketCount > 0 (La trasmissione asincrona parte in automatico non appena è disponibile la rete e ci sono dati in attesa di essere inviati);
+
+14. Goal BLEAutoConnectionAndDownload: una operazione sola.
+    - DownloadSensorDataViaBLE:
+        -- Definizione: L'applicazione mobile Gateway, non appena rileva che la connessione BLE con il sensore è attiva (distanza inferiore a 10 metri), si connette al dispositivo e ne scarica i dati storici accumulati, salvandoli temporaneamente nella stringa del payload del proprio buffer locale;
+        -- Agente (Performer): AppGateway (Software Agent);
+        -- Firma (Signature):
+            --- Input: d: IoTDevice, b: LocalGatewayBuffer;
+            --- Output: b: LocalGatewayBuffer / {pendingPacketCount, pendingPacket, isCloudSynchronized};
+        -- DomPre (Pre-condizione di dominio): True (Il buffer del gateway può sempre ricevere ed accumulare nuovi dati dal sensore se c'è connessione fisica, senza vincoli di svuotamento preventivo);
+        -- DomPost (Post-condizione di dominio): b.pendingPacketCount > b.pendingPacketCount@pre AND b.pendingPacket != "" AND b.isCloudSynchronized = False (I dati storici sono stati correttamente scaricati e memorizzati nel buffer del telefono, incrementando il contatore e marcando il buffer come non ancora sincronizzato col Cloud);
+        -- ReqPre (Pre-condizione richiesta - Presenza di connessione BLE): d.BLEConnectionStatus = True (Il download dei dati può avvenire solo se la connessione Bluetooth con il sensore è attualmente attiva);
+        -- ReqTrig (Trigger richiesto - Download automatico): d.BLEConnectionStatus = True (Il download dei dati si attiva ed opera in modo continuo non appena la connessione BLE è stabilita);
+
+15. Goal DashboardAccessibleToActors: una operazione sola.
+    - RenderProfilatedDashboard:
+        -- Definizione: Il DashboardManager riceve una richiesta di visualizzazione dello storico per un determinato dispositivo IoT e genera una schermata web contenente lo storico di tutte le misurazioni ambientali e degli allarmi ad esso associati;
+        -- Agente (Performer): DashboardManager (Software Agent);
+        -- Firma (Signature):
+            --- Input: d: IoTDevice, m: EnvironmentalMeasurement, a: AlarmNotification;
+            --- Output: a: null;
+        -- DomPre (Pre-condizione di dominio): samples(d, m) AND (exists s: Shipment | tracked_by(s, d) AND generates(s, a)) (La misurazione m appartiene al sensore d e l'allarme a è associato alla spedizione s attualmente tracciata dallo stesso sensore d);
+        -- DomPost (Post-condizione di dominio): lo storico dei parametri fisici m e degli allarmi a associati al viaggio del sensore d viene proiettato a schermo (L'interfaccia grafica della dashboard viene popolata con le misurazioni e gli allarmi corretti);
+        -- ReqTrig (Trigger richiesto): Occurs(DashboardAccessRequested(d)) (La generazione della pagina web si attiva non appena viene richiesta la visualizzazione dei dettagli del sensore d).
+
+16. Goal OutofRangeContitionHighlighned: una operazione sola.
+    - HighlightOutOfRangeCondition:
+        -- Definizione: Il DashboardManager rileva che un campionamento caricato a sistema presenta il flag fuori soglia attivo e istanzia immediatamente un allarme visivo di tipo OUT_OF_RANGE collegato alla spedizione in corso;
+        -- Agente (Performer): DashboardManager (Software Agent);
+        -- Firma (Signature):
+            --- Input: d: IoTDevice, m: EnvironmentalMeasurement;
+            --- Output: a: AlarmNotification / {Alarm, Timestamp};
+        -- DomPre (Pre-condizione di dominio): samples(d, m) AND m.isOutOfRange = True (La misurazione m campionata dal sensore d presenta lo stato di fuori soglia impostato su True);
+        -- DomPost (Post-condizione di dominio): exists s: Shipment, a: AlarmNotification | tracked_by(s, d) AND generates(s, a) AND a.Alarm = OUT_OF_RANGE AND a.Timestamp = current_time() (Viene creata un'istanza di allarme di tipo OUT_OF_RANGE associata alla spedizione s e valorizzata con il timestamp corrente);
+        -- ReqTrig (Trigger richiesto): samples(d, m) AND m.isOutOfRange = True AND not (exists s: Shipment, a: AlarmNotification | tracked_by(s, d) AND generates(s, a) AND a.Alarm = OUT_OF_RANGE) (La visualizzazione dell'allarme sulla dashboard si attiva immediatamente alla ricezione del primo campionamento fuori soglia per evitare la duplicazione degli alert).
+
+17. Goal DashboardAccessibleViaCode: una operazione sola.
+    - AccessDashboardViaAlphanumericCode:
+        -- Definizione: L'APIManager riceve una richiesta API contenente un codice inserito manualmente, interroga la ShippingLabel associata alla spedizione e, se i codici coincidono, autorizza l'esposizione dello storico dei parametri fisici di viaggio;
+        -- Agente (Performer): APIManager (Software Agent);
+        -- Firma (Signature):
+            --- Input: s: Shipment, l: ShippingLabel;
+            --- Output: null (l'esito positivo sblocca l'esposizione dei dati a backend);
+        -- DomPre (Pre-condizione di dominio): Showed_by(s, l) (La ShippingLabel l è legata alla spedizione s, in logicalState = COMPLETED, tramite l'associazione Showed_by);
+        -- DomPost (Post-condizione di dominio): Lo storico dei dati della spedizione s viene autorizzato all'esposizione;
+        -- ReqPre (Pre-condizione richiesta): L'esposizione dei dati viene sbloccata solo ed esclusivamente in presenza di un codice corrispondente a quello registrato, per una spedizione valida e completata;
+        -- ReqTrig (Trigger richiesto): Occurs(AlphanumericCodeSubmitted() OR QrCodeSubmitted) (La convalida asincrona e lo sblocco si attivano istantaneamente non appena l'utente invia il codice tramite il form web della dashboard).
+
+18. Goal SecureDataExposedViaAPI: una operazione sola.
+    - ExportComplianceDataViaAPI:
+        -- Definizione: L'APIManager riceve una richiesta di esportazione da sistemi informatici esterni ed enti terzi, verifica l'autenticità del token di accesso e restituisce in formato sicuro (JSON via HTTPS) lo storico delle misurazioni fisiche e le firme crittografiche di conformità associate alla spedizione;
+        -- Agente (Performer): APIManager (Software Agent);
+        -- Firma (Signature):
+            --- Input: s: Shipment, m: EnvironmentalMeasurement, c: CryptographicSignature;
+            --- Output: null (l'operazione di esportazione e query non modifica lo stato persistente delle entità a database);
+        -- DomPre (Pre-condizione di dominio): exists d: IoTDevice | tracked_by(s, d) AND samples(d, m) AND secured_by(m, c) (La spedizione s è tracciata dal sensore d, il quale ha raccolto la misurazione m protetta a sua volta dalla firma crittografica c);
+        -- DomPost (Post-condizione di dominio): Lo storico dei parametri fisici m e delle relative firme di conformità c associati alla spedizione s viene strutturato ed esportato con successo verso il sistema richiedente;
+        -- ReqPre (Pre-condizione richiesta - Canale sicuro e autenticato): l'accesso agli endpoint di esportazione è subordinato alla presenza di un token API REST valido e attivo, transitante su canale cifrato HTTPS, non gestito direttamente dal software in questione ma assunto come presente);
+        -- ReqTrig (Trigger richiesto): Occurs(APIExportRequested(s)) (La formattazione e la trasmissione dei pacchetti dati si attivano istantaneamente non appena perviene una chiamata HTTPS GET di esportazione per la spedizione s da parte di un client autenticato).
+
+19. Goal Avoid [UnauthorizedDataModification]:
+        -- Modalità di soddisfacimento: Il goal di sicurezza (tipo Avoid) viene operazionalizzato in modo prescrittivo attraverso due vincoli strutturali imposti all'intero Operation Model:
+        -- Assenza di operazioni di Update/Delete: All'interno dell'intero modello delle operazioni del Cloud SaaS non è definita alcuna operazione che presenti tra i propri effetti (nella DomPost) la modifica o la cancellazione logico-fisica delle istanze delle classi EnvironmentalMeasurement e CryptographicSignature. Lo storage dei dati storici è vincolato a livello di architettura a essere esclusivamente di tipo append-only.
+        -- Immutabilità della firma crittografica: L'unica operazione di scrittura consentita sulle firme è VerifyDataIntegrity (eseguita dall'agente IntegrityVerifier), la quale ha il solo compito di valorizzare lo stato iniziale dell'attributo integrityStatus (impostandolo a VALID o INVALID) all'atto della ricezione del pacchetto, senza consentire alcuna alterazione successiva del record.
+
+
+
+

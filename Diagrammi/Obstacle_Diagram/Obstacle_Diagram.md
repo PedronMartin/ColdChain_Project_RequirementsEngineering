@@ -44,6 +44,13 @@ Questo ramo tratta i rischi fisici ed elettronici legati al campionamento contin
    * **Definizione:** *Il chip crittografico hardware gestito da SecureElement a bordo del sensore non riesce ad applicare la firma digitale asimmetrica ai dati per un guasto elettrico interno o un degrado hardware permanente.*
    * **Categoria:** `Hardware Failure`
    * **Risoluzione Software:** **Nessuna**. Trattandosi di un danno fisico irreversibile sul silicio del microcontrollore del sensore, la macchina software non ha alcuna possibilità di ripristinare il componente guasto. Il sistema cloud rileva l'anomalia (mancanza di firme conformi e fallimento sistematico del convalidatore), evidenzia lo stato di non conformità della merce e segnala la necessità di scartare il sensore guasto a fine viaggio.
+   
+12. **Ostacolo 12:**  UnrepresentativeSensorPlacement
+    *   **Goal Ostruito:**  Maintain [PhysicalParametersSampledBySensor] (Aspettativa d'ambiente assegnata all'agente PhysicalTransducer).
+    *   **Definizione:**   *Il sensore IoT viene posizionato accidentalmente in modo errato (es. all'esterno del contenitore refrigerato del prodotto di trasporto o in un punto del veicolo esposto a sbalzi termici non rappresentativi), registrando parametri fisici che non rispecchiano lo stato di reale conservazione della merce fragile.*
+    *   **Categoria:**  Human Error/Procedural Error
+    *   **Risoluzione (Mitigazione Passiva):**  Assunzione (Physical Placement Domain Assumption).
+    *   **Meccanismo di Risoluzione:**  Trattandosi di un errore operativo sul campo da parte degli addetti alla logistica, il rischio non è risolvibile tramite logica software a runtime. La minaccia viene mitigata e gestita a livello procedurale tramite una **Domain Assumption (Physical Placement)**, che assume contrattualmente il rispetto di rigide linee guida di imballaggio (Standard Operating Procedures) che obbligano gli operatori a posizionare e ancorare stabilmente il sensore all'interno del collo prima dell'avvio della spedizione.
 
 ### Ramo C: Connessione e trasmissione (gateway)
 Questo ramo analizza i rischi relativi alla trasmissione wireless a corto raggio (BLE) e all'inoltro WAN cellulare (4G/5G) verso la piattaforma SaaS.

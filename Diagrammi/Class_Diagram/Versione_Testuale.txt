@@ -1,0 +1,108 @@
+CLASS DIAGRAM TESTUALE:
+
+Classi e attributi:
+
+eccediamo con la precisione richiesta e sistemiamo tutto mantenendo esattamente il case e i nomi originali presenti nell'immagine.
+
+classi e attributi:
+
+1. LocalGatewayBuffer
+
+    - pendingPacketCount : Integer
+
+    - pendingPacket : String
+
+    - isCloudSynchronized : Boolean
+
+2. EnvironmentalMeasurement
+
+    - metricName : String
+
+    - TimeStamp : Date
+
+    - measuredValue : Integer
+
+    - isOutOfRange : Boolean
+
+3. CryptographicSignature
+
+    - integrityStatus : ValidationState
+
+    - signatureValue : String
+
+4. IoTDevice
+
+    - BLEConnectionStatus : Boolean
+
+    - publicKey : String
+
+    - hardwareID : String
+
+    - batteryLevel : Integer
+
+    - BufferMemory : String
+
+5. Shipment
+
+    - logicalState : ShipmentState
+
+    - shipmentID : String
+
+6. ShippingLabel
+
+    - isQrCodeReadable : Boolean
+
+    - QrCodeURL : String
+
+    - AlphanumericCode : String
+
+7. AlarmNotification
+
+    - Timestamp : Date
+
+    - Alarm : AlarmType
+
+8. ConfigurationProfile
+
+    - samplingInterval : Integer
+
+    - ProfileID : String
+
+9. ThresholdRule
+
+    - minValue : Integer
+
+    - maxValue : Integer
+
+    - metricName : String
+
+Annotazioni ed enumerazioni:
+
+    - ShipmentState is an Enumeration composed by: CREATED, IN_TRANSIT, PAUSED, CANCELLED, COMPLETED.
+
+    - ValidationState is an Enumeration composed by: VALID, INVALID.
+
+    - AlarmType is an Enumeration composed by: LOW_BATTERY, INTEGRITY_VIOLATION, OUT_OF_RANGE.
+
+Associazioni e cardinalità:
+
+    - EnvironmentalMeasurement (0..*) buffered in (0..1) LocalGatewayBuffer
+
+    - EnvironmentalMeasurement (1) secured by (1) CryptographicSignature
+
+    - IoTDevice (1) samples (0..*) EnvironmentalMeasurement
+
+    - IoTDevice (0..*) tracked by (0..1) Shipment
+
+    - Shipment (1) Showed by (1) ShippingLabel
+
+    - Shipment (0..1) generates (0..*) AlarmNotification
+
+    - Shipment (1) defined by (1) ConfigurationProfile
+
+    - ConfigurationProfile (1) contains (0..*) ThresholdRule
+
+
+
+
+

@@ -1,0 +1,97 @@
+1:
+@startuml
+actor "Manager" as Man
+actor "Operatore Magazzino" as Op
+participant "App Gateway" as App
+participant "Dispositivo IoT" as Sensor
+participant "SaaS Cloud" as Cloud
+
+autonumber
+
+== Inizializzazione Spedizione ==
+Man -> Cloud : Crea spedizione (dati carico, profili soglia)
+activate Cloud
+Cloud -> Cloud : Registra viaggio\n[Stato: CREATED]
+Cloud --> Man : Spedizione creata
+Cloud --> Op : Notifica spedizione da preparare
+deactivate Cloud
+
+== Associazione Fisica e Configurazione BLE ==
+Op -> App : Scansiona etichetta o QR-Code dispositivo IoT
+activate App
+App -> Cloud : Associa dispositivo IoT a Spedizione (shipmentID, hardwareID)
+activate Cloud
+Cloud --> App : Conferma associazione e invia profilo (grandezze, soglie, frequenza)
+deactivate Cloud
+
+App -> Sensor : Connessione BLE & Invia configurazione (grandezze, soglie, frequenza)
+activate Sensor
+Sensor -> Sensor : Salva e configura profilo in memoria
+Sensor --> App : Configurazione completata
+deactivate Sensor
+deactivate App
+
+Op -> Op : Posiziona il dispositivo IoT nel pacco e sigilla il carico
+Sensor -> Sensor: Inizio campionamento
+@enduml
+
+
+
+2:
+@startuml
+actor "Autista" as Driver
+participant "App Gateway" as App
+participant "Dispositivo IoT" as Sensor
+participant "SaaS Cloud" as Cloud
+
+autonumber
+
+== Avvio del Transito ==
+Driver -> App : Connessione e avvio viaggio
+activate App
+App -> Cloud : Transizione stato [Stato: IN_TRANSIT]
+App --> Driver : Viaggio avviato correttamente
+deactivate App
+
+== Singolo Ciclo di Monitoraggio ==
+Sensor -> Sensor : Rileva grandezze fisiche (campionamento)
+Sensor -> Sensor : Applica firma crittografica al dato
+
+
+Sensor -> App : Richiesta scaricamento dati via BLE
+activate Sensor
+Sensor --> App : Invia misura firmata
+deactivate Sensor
+
+activate App
+App -> Cloud : Upload pacchetto dati firmati
+deactivate Cloud
+
+Cloud -> Cloud : Verifica validità firma crittografica\n[Stato: VALID]
+Cloud -> Cloud : Salva dati storici nel database
+Cloud --> App : Conferma ricezione avvenuta
+deactivate Cloud
+deactivate App
+@enduml
+
+
+
+3:
+@startuml
+actor "Cliente/Ente di certificazione" as Client
+participant "SaaS Cloud" as Cloud
+participant "DashboardManager" as Dash
+
+autonumber
+
+Client -> Cloud : Scansiona QR-Code su etichetta fisica
+activate Cloud
+
+Cloud -> Dash : Richiede interfaccia di visualizzazione storico
+deactivate Cloud
+
+activate Dash
+Dash -> Dash : Estrae storico misure & allarmi generati
+Dash --> Client : Rende visibile la Dashboard con storico dati
+deactivate Dash
+@enduml
